@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Froyocomb Helper
 // @namespace    https://dobby233liu.neocities.org
-// @version      v0.9.99
+// @version      v1.0.0
 // @description  Helps finding commits before a specific date (i.e. included with a specific build) faster
 // @author       Liu Wenyuan
 // @match        https://android.googlesource.com/platform/*
@@ -9,6 +9,9 @@
 // @grant        GM_setValue
 // @grant        GM_getValue
 // @run-at       document-end
+// @downloadURL  https://gist.github.com/Dobby233Liu/c55c1e9c816facd153eeb19e386f53fd/raw/Froyocomb Helper.user.js
+// @updateURL    https://gist.github.com/Dobby233Liu/c55c1e9c816facd153eeb19e386f53fd/raw/Froyocomb Helper.user.js
+// @supportURL   https://gist.github.com/Dobby233Liu/c55c1e9c816facd153eeb19e386f53fd
 // ==/UserScript==
 
 "use strict";
