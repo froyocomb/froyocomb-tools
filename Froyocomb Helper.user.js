@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Froyocomb Helper
 // @namespace    https://dobby233liu.neocities.org
-// @version      v1.0.0
+// @version      v1.0.1
 // @description  Helps finding commits before a specific date (i.e. included with a specific build) faster
 // @author       Liu Wenyuan
 // @match        https://android.googlesource.com/platform/*
@@ -24,7 +24,7 @@ function createFloatingPanel() {
     transform: translateX(-50%) translateZ(0);
 
     padding: 8px;
-    background: #ffdb00dd;
+    background: #ffdb00ee;
 }
 
 .fch-FloatingPanel button {
@@ -154,21 +154,22 @@ if (document.querySelector(".RepoShortlog")) {
     display: flex;
     flex-flow: row wrap;
     gap: 8px;
-    color: #666;
-    margin: 4px 0;
-    padding: 0 4px;
-    border: 1px #333 solid;
+    align-items: center;
+    margin-bottom: 4px;
 }
 
 .fch-LightEmUp-Message {
     flex: 1 1;
-    min-width: 5%;
 }
 
-li:has(.fch-LightEmUp-Btn), li:has(.fch-LightEmUp-RefTimeSetter-Container) {
+.fch-LightEmUp-RefTime-Entry, .fch-LightEmUp-RefTimeSetter-Entry {
     text-align: center;
+    font-size: 12px;
 }
-li:has(.fch-LightEmUp-RefTimeSetter-Container) {
+.fch-LightEmUp-RefTime-Entry {
+    font-size: 13px;
+}
+.fch-LightEmUp-RefTimeSetter-Entry {
     font-size: 12px;
 }
 
@@ -184,7 +185,11 @@ li:has(.fch-LightEmUp-RefTimeSetter-Container) {
 
         const list = panel.appendChild(document.createElement("ul"));
 
-        const lightEmUpBtn = addListItem(list, generateButton("Light 'em up!", function() {
+        const lightEmUpEntry = list.appendChild(document.createElement("li"));
+        const messageContainerEl = lightEmUpEntry.appendChild(document.createElement("div"));
+        messageContainerEl.classList.add("fch-LightEmUp-Message-Container");
+
+        const lightEmUpBtn = messageContainerEl.appendChild(generateButton("Light 'em up!", function() {
             const commits = Array.from(document.querySelectorAll(".Site-content > .Container > .CommitLog > .CommitLog-item"));
 
             const time = new Date(GM_getValue("referenceTime"));
@@ -210,10 +215,6 @@ li:has(.fch-LightEmUp-RefTimeSetter-Container) {
             messageEl.title = `(before ${time.toISOString()})`;
             jumpToFirst.style.display = filtered.length > 0 ? "" : "none";
         }));
-        lightEmUpBtn.classList.add("fch-LightEmUp-Btn");
-
-        const messageContainerEl = list.appendChild(document.createElement("p"));
-        messageContainerEl.classList.add("fch-LightEmUp-Message-Container");
 
         const messageEl = messageContainerEl.appendChild(document.createElement("span"));
         messageEl.classList.add("fch-LightEmUp-Message");
@@ -238,16 +239,19 @@ li:has(.fch-LightEmUp-RefTimeSetter-Container) {
             }
         }
 
-        const refTimeContainer = addListItem(list, document.createElement("span"));
-        const refTimePrefix = refTimeContainer.appendChild(document.createTextNode("Highlight commits before "));
+        const refTimeEntry = list.appendChild(document.createElement("li"));
+        refTimeEntry.classList.add("fch-LightEmUp-RefTime-Entry");
+        const refTimeContainer = refTimeEntry.appendChild(document.createElement("span"));
+        const refTimePrefix = refTimeContainer.appendChild(document.createTextNode("Highlight commits from before "));
         const refTimeDisp = refTimeContainer.appendChild(document.createElement("strong"));
         function updateRefTimeDisp() {
             refTimeDisp.innerText = new Date(GM_getValue("referenceTime")).toISOString();
         }
         updateRefTimeDisp();
 
-        const refTimeSetterContainer = addListItem(list, document.createElement("span"));
-        refTimeSetterContainer.classList.add("fch-LightEmUp-RefTimeSetter-Container");
+        const refTimeSetterEntry = list.appendChild(document.createElement("li"));
+        refTimeSetterEntry.classList.add("fch-LightEmUp-RefTimeSetter-Entry");
+        const refTimeSetterContainer = refTimeSetterEntry.appendChild(document.createElement("span"));
 
         refTimeSetterContainer.appendChild(document.createTextNode("(Set "));
 
