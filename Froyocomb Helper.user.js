@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Froyocomb Helper
 // @namespace    https://dobby233liu.neocities.org
-// @version      v1.0.1
+// @version      v1.0.2
 // @description  Helps finding commits before a specific date (i.e. included with a specific build) faster
 // @author       Liu Wenyuan
 // @match        https://android.googlesource.com/platform/*
@@ -32,7 +32,8 @@ function createFloatingPanel() {
 }`);
     const panel = document.createElement("div");
     panel.classList.add("fch-FloatingPanel");
-    document.body.appendChild(panel);
+    document.body.insertAdjacentElement("afterBegin", panel);
+    panel.tabindex = 0;
     return panel;
 }
 
@@ -215,6 +216,8 @@ if (document.querySelector(".RepoShortlog")) {
             messageEl.title = `(before ${time.toISOString()})`;
             jumpToFirst.style.display = filtered.length > 0 ? "" : "none";
         }));
+        lightEmUpBtn.accessKey = "z";
+        lightEmUpBtn.title = "[alt+z]";
 
         const messageEl = messageContainerEl.appendChild(document.createElement("span"));
         messageEl.classList.add("fch-LightEmUp-Message");
@@ -224,18 +227,24 @@ if (document.querySelector(".RepoShortlog")) {
         jumpToFirst.innerText = "(first)";
         jumpToFirst.href = "#" + firstId;
         jumpToFirst.style.display = "none";
+        jumpToFirst.accessKey = "v";
+        jumpToFirst.title = "[alt+v]";
 
         const nextButtonOrig = document.querySelector(".LogNav-next");
         const prevButtonOrig = document.querySelector(".LogNav-prev");
         if (nextButtonOrig || prevButtonOrig) {
             messageContainerEl.appendChild(document.createTextNode("|"));
             if (prevButtonOrig) {
-                const nextButton = messageContainerEl.appendChild(prevButtonOrig.cloneNode());
-                nextButton.innerText = "<< Prev";
+                const prevButton = messageContainerEl.appendChild(prevButtonOrig.cloneNode());
+                prevButton.innerText = "<< Prev";
+                prevButton.accessKey = "a";
+                prevButton.title = "[alt+a]";
             }
             if (nextButtonOrig) {
                 const nextButton = messageContainerEl.appendChild(nextButtonOrig.cloneNode());
                 nextButton.innerText = "Next >>";
+                nextButton.accessKey = "s";
+                nextButton.title = "[alt+s]";
             }
         }
 
@@ -279,7 +288,13 @@ if (document.querySelector(".RepoShortlog")) {
             updateRefTimeDisp();
         }));
 
-        refTimeSetterContainer.appendChild(generateButton("by tag commit", async function() {
+        const setByCommitBtn = refTimeSetterContainer.appendChild(generateButton("by tag commit"));
+        refTimeSetterContainer.appendChild(document.createTextNode(")"));
+        const setByCommitWorkingEl = refTimeSetterContainer.appendChild(document.createElement("span"));
+        setByCommitWorkingEl.innerText = " (working...)";
+        setByCommitWorkingEl.style.display = "none";
+
+        async function setByCommitBtnOnClickReal() {
             const hash = prompt("Please input the full SHA256 hash of the commit to build/core/build_id.mk that you have in mind").trim();
             if (hash.search(/^[0-9a-f]{40}$/) == -1) {
                 alert("Invalid hash");
@@ -296,7 +311,7 @@ if (document.querySelector(".RepoShortlog")) {
                     const errMsg = await response.text();
                     console.error(new Error(errMsg));
                     alert("Status: " + response.status + "\n\n" + errMsg.trim());
-                    return
+                    return;
                 }
 
                 const body = parseGitilesJson(await response.text());
@@ -324,8 +339,13 @@ Does this seem correct?`)) {
                 console.error(ex);
                 alert(ex.stack);
             }
-        }));
-
-        refTimeSetterContainer.appendChild(document.createTextNode(")"));
+        }
+        setByCommitBtn.addEventListener("click", async function() {
+            setByCommitWorkingEl.style.display = "";
+            try {
+                await setByCommitBtnOnClickReal();
+            } catch (_) {}
+            setByCommitWorkingEl.style.display = "none";
+        });
     })();
 }
