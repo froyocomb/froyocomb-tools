@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Froyocomb Helper
 // @namespace    https://dobby233liu.neocities.org
-// @version      v1.0.3
+// @version      v1.0.4
 // @description  Helps finding commits before a specific date (i.e. included with a specific build) faster
 // @author       Liu Wenyuan
 // @match        https://android.googlesource.com/platform/*
@@ -100,8 +100,8 @@ function filterCommits(commits, dateBefore) {
         const time = new Date(commit.querySelector(":scope > .CommitLog-time").title);
         if (isNaN(+time))
             continue;
-        if (time < dateBefore)
-            result.push(commit);
+        if (time <= dateBefore)
+            result.push([commit, time >= dateBefore]);
     }
 
     return result;
@@ -176,11 +176,15 @@ if (document.querySelector(".RepoShortlog")) {
 .CommitLog-item--fch-lightedUp {
     background: #ffff00;
 }
+.CommitLog-item--fch-lightedUp-exact {
+    background: #ffa400;
+}
 `);
 
         const panel = createFloatingPanel();
 
         const lightedUpClz = "CommitLog-item--fch-lightedUp";
+        const lightedUpExactClz = "CommitLog-item--fch-lightedUp-exact";
         const firstId = "fch-lightedUp-First";
 
         const list = panel.appendChild(document.createElement("ul"));
@@ -196,12 +200,16 @@ if (document.querySelector(".RepoShortlog")) {
             const filtered = filterCommits(commits, time);
             let firstFound = false;
             for (const commit of commits) {
-                if (!filtered.includes(commit)) {
+                const found = filtered.find(i => i[0] === commit);
+                if (!found) {
                     commit.classList.remove(lightedUpClz);
+                    commit.classList.remove(lightedUpExactClz);
                     if (commit.id == firstId)
                         delete commit.id;
                 } else {
-                    commit.classList.add(lightedUpClz);
+                    commit.classList.remove(lightedUpClz);
+                    commit.classList.remove(lightedUpExactClz);
+                    commit.classList.add(found[1] ? lightedUpExactClz : lightedUpClz);
                     if (!firstFound) {
                         commit.id = firstId;
                         firstFound = true;
