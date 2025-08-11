@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Froyocomb Helper
 // @namespace    https://dobby233liu.neocities.org
-// @version      v1.0.7
+// @version      v1.0.8
 // @description  Helps finding commits before a specific date (i.e. included with a specific build) faster
 // @author       Liu Wenyuan
 // @match        https://android.googlesource.com/*
@@ -220,7 +220,7 @@ if (document.querySelector(".RepoShortlog")) {
                     commit.classList.remove(lightedUpExactClz);
                     commit.classList.remove(lightedUpLesserClz);
                     commit.classList.add(lightedUpClz + found[1]);
-                    if (!firstFound && found[1] != "-lesser") {
+                    if (!firstFound) {
                         commit.id = firstId;
                         firstFound = true;
                     } else if (commit.id == firstId) {
