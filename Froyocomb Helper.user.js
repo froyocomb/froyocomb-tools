@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Froyocomb Helper
 // @namespace    https://dobby233liu.neocities.org
-// @version      v1.0.2
+// @version      v1.0.3
 // @description  Helps finding commits before a specific date (i.e. included with a specific build) faster
 // @author       Liu Wenyuan
 // @match        https://android.googlesource.com/platform/*
@@ -165,7 +165,6 @@ if (document.querySelector(".RepoShortlog")) {
 
 .fch-LightEmUp-RefTime-Entry, .fch-LightEmUp-RefTimeSetter-Entry {
     text-align: center;
-    font-size: 12px;
 }
 .fch-LightEmUp-RefTime-Entry {
     font-size: 13px;
@@ -347,5 +346,20 @@ Does this seem correct?`)) {
             } catch (_) {}
             setByCommitWorkingEl.style.display = "none";
         });
+    })();
+} else if (document.querySelector(".TreeDetail")) {
+    (function() {
+        const commitRow = document.querySelector(".Metadata > table > tbody > tr");
+        const commit = commitRow.querySelector(":scope > td:nth-child(2)").innerText;
+        const dLog = commitRow.querySelector(":scope > td:nth-child(3)");
+        const headLogUrl = new URL(getPathToRef(getRepoHomePath(location.pathname), "HEAD", "log"), location.origin);
+        headLogUrl.searchParams.set("s", commit);
+        dLog.appendChild(document.createTextNode(" "));
+        const headLogLinkContainer = dLog.appendChild(document.createElement("span"));
+        headLogLinkContainer.appendChild(document.createTextNode("["));
+        const headLogLink = headLogLinkContainer.appendChild(document.createElement("a"));
+        headLogLink.href = headLogUrl.href;
+        headLogLink.innerText = "log@HEAD";
+        headLogLinkContainer.appendChild(document.createTextNode("]"));
     })();
 }
