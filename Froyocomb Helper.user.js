@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Froyocomb Helper
 // @namespace    https://dobby233liu.neocities.org
-// @version      v1.0.6
+// @version      v1.0.7
 // @description  Helps finding commits before a specific date (i.e. included with a specific build) faster
 // @author       Liu Wenyuan
 // @match        https://android.googlesource.com/*
@@ -100,13 +100,12 @@ function filterCommits(commits, dateBefore) {
 
     for (const commit of commits) {
         const authorEmail = commit.querySelector(":scope > .CommitLog-author").title;
-        if (!AUTHOR_ALLOWLIST.some(i => authorEmail.includes(i)))
-            continue;
+        const lesser = !AUTHOR_ALLOWLIST.some(i => authorEmail.includes(i));
         const time = new Date(commit.querySelector(":scope > .CommitLog-time").title);
         if (isNaN(+time))
             continue;
         if (time <= dateBefore)
-            result.push([commit, time >= dateBefore]);
+            result.push([commit, lesser ? "-lesser" : (time >= dateBefore ? "-exact" : "")]);
     }
 
     return result;
@@ -184,12 +183,16 @@ if (document.querySelector(".RepoShortlog")) {
 .CommitLog-item--fch-lightedUp-exact {
     background: #ffa400;
 }
+.CommitLog-item--fch-lightedUp-lesser {
+    background: #eeee003a;
+}
 `);
 
         const panel = createFloatingPanel();
 
         const lightedUpClz = "CommitLog-item--fch-lightedUp";
         const lightedUpExactClz = "CommitLog-item--fch-lightedUp-exact";
+        const lightedUpLesserClz = "CommitLog-item--fch-lightedUp-lesser";
         const firstId = "fch-lightedUp-First";
 
         const list = panel.appendChild(document.createElement("ul"));
@@ -209,13 +212,15 @@ if (document.querySelector(".RepoShortlog")) {
                 if (!found) {
                     commit.classList.remove(lightedUpClz);
                     commit.classList.remove(lightedUpExactClz);
+                    commit.classList.remove(lightedUpLesserClz);
                     if (commit.id == firstId)
                         delete commit.id;
                 } else {
                     commit.classList.remove(lightedUpClz);
                     commit.classList.remove(lightedUpExactClz);
-                    commit.classList.add(found[1] ? lightedUpExactClz : lightedUpClz);
-                    if (!firstFound) {
+                    commit.classList.remove(lightedUpLesserClz);
+                    commit.classList.add(lightedUpClz + found[1]);
+                    if (!firstFound && found[1] != "-lesser") {
                         commit.id = firstId;
                         firstFound = true;
                     } else if (commit.id == firstId) {
