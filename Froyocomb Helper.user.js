@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Froyocomb Helper
 // @namespace    https://dobby233liu.neocities.org
-// @version      v1.0.8
+// @version      v1.0.9
 // @description  Helps finding commits before a specific date (i.e. included with a specific build) faster
 // @author       Liu Wenyuan
 // @match        https://android.googlesource.com/*
@@ -89,9 +89,9 @@ function parseGitilesJson(rawJson) {
 }
 
 const AUTHOR_ALLOWLIST = [
-    "@google.com",
+    /@.+?google.com/,
     "%google.com@gtempaccount.com",
-    "@android.com",
+    /@.+?android.com/,
     "%android.com@gtempaccount.com"
 ];
 
@@ -100,7 +100,7 @@ function filterCommits(commits, dateBefore) {
 
     for (const commit of commits) {
         const authorEmail = commit.querySelector(":scope > .CommitLog-author").title;
-        const lesser = !AUTHOR_ALLOWLIST.some(i => authorEmail.includes(i));
+        const lesser = !AUTHOR_ALLOWLIST.some(i => i instanceof RegExp ? !!authorEmail.match(i) : authorEmail.includes(i));
         const time = new Date(commit.querySelector(":scope > .CommitLog-time").title);
         if (isNaN(+time))
             continue;
@@ -160,7 +160,7 @@ if (document.querySelector(".RepoShortlog")) {
     flex-flow: row wrap;
     gap: 8px;
     align-items: center;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
 }
 
 .fch-LightEmUp-Message {
