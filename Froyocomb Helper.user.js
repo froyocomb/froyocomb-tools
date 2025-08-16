@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Froyocomb Helper
 // @namespace    https://dobby233liu.neocities.org
-// @version      v1.0.9
+// @version      v1.0.10
 // @description  Helps finding commits before a specific date (i.e. included with a specific build) faster
 // @author       Liu Wenyuan
 // @match        https://android.googlesource.com/*
@@ -89,9 +89,9 @@ function parseGitilesJson(rawJson) {
 }
 
 const AUTHOR_ALLOWLIST = [
-    /@.+?google.com/,
+    /@(?:|[A-Za-z0-9\-\.]+?\.)google.com/, // look idk
     "%google.com@gtempaccount.com",
-    /@.+?android.com/,
+    /@(?:|[A-Za-z0-9\-\.]+?\.)android.com/,
     "%android.com@gtempaccount.com"
 ];
 
