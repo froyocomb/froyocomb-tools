@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Froyocomb Helper
 // @namespace    https://dobby233liu.neocities.org
-// @version      v1.0.10
+// @version      v1.0.11
 // @description  Helps finding commits before a specific date (i.e. included with a specific build) faster
 // @author       Liu Wenyuan
 // @match        https://android.googlesource.com/*
@@ -367,17 +367,30 @@ Does this seem correct?`)) {
     })();
 } else if (document.querySelector(".TreeDetail")) {
     (function() {
-        const commitRow = document.querySelector(".Metadata > table > tbody > tr");
-        const commit = commitRow.querySelector(":scope > td:nth-child(2)").innerText;
-        const dLog = commitRow.querySelector(":scope > td:nth-child(3)");
-        const headLogUrl = new URL(getPathToRef(getRepoHomePath(location.pathname), "HEAD", "log"), location.origin);
-        headLogUrl.searchParams.set("s", commit);
-        dLog.appendChild(document.createTextNode(" "));
-        const headLogLinkContainer = dLog.appendChild(document.createElement("span"));
-        headLogLinkContainer.appendChild(document.createTextNode("["));
-        const headLogLink = headLogLinkContainer.appendChild(document.createElement("a"));
-        headLogLink.href = headLogUrl.href;
-        headLogLink.innerText = "log@HEAD";
-        headLogLinkContainer.appendChild(document.createTextNode("]"));
+        const commitRow = document.querySelector(".Metadata > table > tbody > tr:nth-child(1)");
+        if (commitRow.querySelector(":scope > .Metadata-title").innerText == "commit") {
+            const commit = commitRow.querySelector(":scope > td:nth-child(2)").innerText;
+            const dLog = commitRow.querySelector(":scope > td:nth-child(3)");
+            const headLogUrl = new URL(getPathToRef(getRepoHomePath(location.pathname), "HEAD", "log"), location.origin);
+            headLogUrl.searchParams.set("s", commit);
+            dLog.appendChild(document.createTextNode(" "));
+            const headLogLinkContainer = dLog.appendChild(document.createElement("span"));
+            headLogLinkContainer.appendChild(document.createTextNode("["));
+            const headLogLink = headLogLinkContainer.appendChild(document.createElement("a"));
+            headLogLink.href = headLogUrl.href;
+            headLogLink.innerText = "log@HEAD";
+            headLogLinkContainer.appendChild(document.createTextNode("]"));
+        }
+
+        const committerRow = document.querySelector(".Metadata > table > tbody > tr:nth-child(3)");
+        if (committerRow.querySelector(":scope > .Metadata-title").innerText == "committer") {
+            const refTime = new Date(GM_getValue("referenceTime"));
+            const commitTimeEl = committerRow.querySelector(":scope > td:nth-child(3)");
+            const commitTime = new Date(commitTimeEl.innerText);
+            if (!isNaN(+commitTime) && commitTime <= refTime) {
+                // .CommitLog-item--fch-lightedUp
+                commitTimeEl.style.backgroundColor = "#ffff00";
+            }
+        }
     })();
 }
