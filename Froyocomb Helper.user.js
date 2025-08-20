@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Froyocomb Helper
 // @namespace    https://dobby233liu.neocities.org
-// @version      v1.0.11
+// @version      v1.0.12
 // @description  Helps finding commits before a specific date (i.e. included with a specific build) faster
 // @author       Liu Wenyuan
 // @match        https://android.googlesource.com/*
@@ -365,7 +365,7 @@ Does this seem correct?`)) {
             setByCommitWorkingEl.style.display = "none";
         });
     })();
-} else if (document.querySelector(".TreeDetail")) {
+} else if (document.querySelector(".TreeDetail") || document.querySelector(".Diff")) {
     (function() {
         const commitRow = document.querySelector(".Metadata > table > tbody > tr:nth-child(1)");
         if (commitRow.querySelector(":scope > .Metadata-title").innerText == "commit") {
