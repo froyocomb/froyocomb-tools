@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Froyocomb Helper
 // @namespace    https://dobby233liu.neocities.org
-// @version      v1.0.14
+// @version      v1.0.15
 // @description  Helps finding commits before a specific date (i.e. included with a specific build) faster
 // @author       Liu Wenyuan
 // @match        https://android.googlesource.com/*
@@ -103,6 +103,13 @@ if (getRepoHomePath(location.pathname).includes("/platform/external/chromium_org
         /@(?:|[A-Za-z0-9\-\.]+?\.)chromium\.org/
     ]);
 }
+let ALERTABLE_COMMENT_MESSAGE_PATTERNS = [
+    // probably indicates a upstream commit
+    "\ngit-svn-id: ",
+    /\nReview URL: http(?:s)?:\/\/codereview\.chromium\.org\//,
+    /\nReview URL: http(?:s)?:\/\/chromiumcodereview\.appspot\.com\//,
+    /\nReviewed-on: http(?:s):\/\/chromium-review\.googlesource\.com\//
+];
 
 function filterCommits(commits, dateBefore) {
     const result = [];
@@ -396,9 +403,11 @@ Does this seem correct?`)) {
             const refTime = new Date(GM_getValue("referenceTime"));
             const commitTimeEl = committerRow.querySelector(":scope > td:nth-child(3)");
             const commitTime = new Date(commitTimeEl.innerText);
+            const commitMsg = document.body.querySelector(".Container > .MetadataMessage")?.innerText;
+            const lesser = commitMsg ? ALERTABLE_COMMENT_MESSAGE_PATTERNS.some(i => i instanceof RegExp ? !!commitMsg.match(i) : commitMsg.includes(i)) : false;
             if (!isNaN(+commitTime) && commitTime <= refTime) {
-                // .CommitLog-item--fch-lightedUp
-                commitTimeEl.style.backgroundColor = "#ffff00";
+                // <arbitary color> or .CommitLog-item--fch-lightedUp
+                commitTimeEl.style.backgroundColor = lesser ? "#aadfff77" : "#ffff00";
             }
         }
     })();
