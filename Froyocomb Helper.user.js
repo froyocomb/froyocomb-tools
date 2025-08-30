@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Froyocomb Helper
 // @namespace    https://dobby233liu.neocities.org
-// @version      v1.0.12
+// @version      v1.0.13
 // @description  Helps finding commits before a specific date (i.e. included with a specific build) faster
 // @author       Liu Wenyuan
 // @match        https://android.googlesource.com/*
@@ -88,12 +88,17 @@ function parseGitilesJson(rawJson) {
     return JSON.parse(rawJson.replace(/^\)\]\}'\n/, ""));
 }
 
-const AUTHOR_ALLOWLIST = [
-    /@(?:|[A-Za-z0-9\-\.]+?\.)google.com/, // look idk
-    "%google.com@gtempaccount.com",
-    /@(?:|[A-Za-z0-9\-\.]+?\.)android.com/,
-    "%android.com@gtempaccount.com"
-];
+const AUTHOR_ALLOWLIST = [ // from inside google/android
+    /@(?:|[A-Za-z0-9\-\.]+?\.)google\.com/, // look idk
+    /%(?:|[A-Za-z0-9\-\.]+?\.)google\.com@gtempaccount\.com/,
+    /@(?:|[A-Za-z0-9\-\.]+?\.)android\.com/,
+    /%(?:|[A-Za-z0-9\-\.]+?\.)android\.com@gtempaccount\.com/,
+    /@android$/,
+    /@android@[a-f0-9\-]+$/,
+].concat([ // im not sure about these
+    /@(?:|[A-Za-z0-9\-\.]+?\.)chromium\.org/
+]);
+console.log(AUTHOR_ALLOWLIST)
 
 function filterCommits(commits, dateBefore) {
     const result = [];
@@ -184,7 +189,7 @@ if (document.querySelector(".RepoShortlog")) {
     background: #ffa400;
 }
 .CommitLog-item--fch-lightedUp-lesser {
-    background: #eeee003a;
+    background: #eeee0040;
 }
 `);
 
