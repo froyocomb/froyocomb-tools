@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Froyocomb Helper
 // @namespace    https://dobby233liu.neocities.org
-// @version      v1.1.0
+// @version      v1.1.1
 // @description  Helps finding commits before a specific date (i.e. included with a specific build) faster
 // @author       Liu Wenyuan
 // @match        https://android.googlesource.com/*
@@ -383,7 +383,7 @@ if (document.querySelector(".RepoShortlog")) {
                     const body = parseGitilesJson(await response.text());
 
                     const commitMsg = (body.message ?? "").split("\n")[0];
-                    const commitDate = new Date(body.committer.time);
+                    let commitDate = new Date(body.committer.time);
                     if (isNaN(+commitDate)) {
                         alert("Invalid date");
                         return;
@@ -398,6 +398,14 @@ Committed by: ${body.committer.name} <${body.committer.email}>
 Commit date: ${commitDate.toISOString()}
 
 Does this seem correct?`)) {
+                        if (body.committer.email == "initial-contribution@android.com"
+                            && (commitMsg.startsWith("auto import from ") || commitMsg.startsWith("Automated import from ")
+                                || (body.message ?? "").startsWith("Automated import of CL "))) {
+                            if (confirm("This commit appears to be a import from SVN (common pre-Dount).\n"
+                                        + "Each import commit's dates appear to be seconds apart, which may cause detection inaccuracy.\n\n"
+                                        + "Adjust reference time by 5 minutes for safety?"))
+                                commitDate = new Date(commitDate.getTime() + 5*60000);
+                        }
                         setForCurrentSite("referenceTime", +commitDate);
                         updateRefTimeDisp();
                     }
