@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Froyocomb Helper
 // @namespace    https://dobby233liu.neocities.org
-// @version      v1.1.1a
+// @version      v1.1.2
 // @description  Helps finding commits before a specific date (i.e. included with a specific build) faster
 // @author       Liu Wenyuan
 // @match        https://android.googlesource.com/*
@@ -18,15 +18,21 @@
 
 "use strict";
 
-function createFloatingPanel() {
+function createFloatingPanel(variant) {
     GM_addStyle(`
 .fch-FloatingPanel {
     position: fixed;
-    left: 50%; bottom: 0;
-    transform: translateX(-50%) translateZ(0);
 
     padding: 8px;
     background: #ffdb00ee;
+}
+.fch-FloatingPanel-bottom {
+    left: 50%; bottom: 0;
+    transform: translate3d(-50%, 0, 0);
+}
+.fch-FloatingPanel-right {
+    right: 0; top: 3em;
+    transform: translate3d(0, 0, 0);
 }
 
 .fch-FloatingPanel button {
@@ -34,6 +40,7 @@ function createFloatingPanel() {
 }`);
     const panel = document.createElement("div");
     panel.classList.add("fch-FloatingPanel");
+    panel.classList.add("fch-FloatingPanel-" + (variant ?? "bottom"));
     document.body.insertAdjacentElement("afterBegin", panel);
     panel.tabindex = 0;
     return panel;
@@ -424,6 +431,15 @@ Does this seem correct?`)) {
         } else {
             rtsTerminateQuote();
         }
+
+        const panelRight = createFloatingPanel("right");
+        panelRight.appendChild(generateButton("Locate", function() {
+            const newLoc = new URL(location);
+            const start = prompt("Commit to locate:", newLoc.searchParams.get("s") || "").trim();
+            if (!start || start === "") return;
+            newLoc.searchParams.set("s", start);
+            location.href = newLoc.href;
+        }));
     })();
 } else if (document.querySelector(".TreeDetail") || document.querySelector(".Diff")) {
     (function() {
