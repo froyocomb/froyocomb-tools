@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Froyocomb Helper
 // @namespace    https://dobby233liu.neocities.org
-// @version      v1.1.6
+// @version      v1.1.6a
 // @description  Tool for speeding up the process of finding commits from before a specific date (i.e. included with a specific build). Developed for Froyocomb, the Android pre-release source reconstruction project.
 // @author       Liu Wenyuan
 // @match        https://android.googlesource.com/*
@@ -20,8 +20,10 @@
 
 const createElement = document.createElement.bind(document);
 
+let floatingPanelStylesPresent = false;
 function createFloatingPanel(variant) {
-    GM_addStyle(`
+    if (!floatingPanelStylesPresent) {
+        GM_addStyle(`
 .fch-FloatingPanel {
     position: fixed;
 
@@ -40,6 +42,8 @@ function createFloatingPanel(variant) {
 .fch-FloatingPanel button {
     font: inherit;
 }`);
+        floatingPanelStylesPresent = true;
+    }
     const panel = createElement("div");
     panel.classList.add("fch-FloatingPanel");
     panel.classList.add("fch-FloatingPanel-" + (variant ?? "bottom"));
