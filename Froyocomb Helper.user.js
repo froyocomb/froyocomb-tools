@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Froyocomb Helper
 // @namespace    https://dobby233liu.neocities.org
-// @version      v1.1.5
+// @version      v1.1.6
 // @description  Tool for speeding up the process of finding commits from before a specific date (i.e. included with a specific build). Developed for Froyocomb, the Android pre-release source reconstruction project.
 // @author       Liu Wenyuan
 // @match        https://android.googlesource.com/*
@@ -184,6 +184,27 @@ if (!getForCurrentSite("referenceTime")) {
 GM_deleteValue("referenceTag");
 GM_deleteValue("referenceBranch");
 GM_deleteValue("referenceTime");
+
+(function() {
+    const headerMenu = document.querySelector(".Site-header .Header-menu");
+    if (headerMenu) {
+        for (const i of headerMenu.querySelectorAll(".Header-menuItem")) {
+            if (i.href.startsWith("https://accounts.google.com/AccountChooser") && i.innerText == "Sign in") {
+                GM_addStyle(`
+.fch-LoginHint {
+    color: #ff2f00;
+}
+`);
+                const loginHint = i.appendChild(createElement("span"));
+                loginHint.innerText = " (recommended)";
+                loginHint.style.textDecoration = "underline dotted";
+                loginHint.title = "Log in for more lenient rate limits";
+                loginHint.classList.add("fch-LoginHint");
+                break;
+            }
+        }
+    }
+})();
 
 if (document.querySelector(".RepoShortlog")) {
     // This part is almost useless outside of android
