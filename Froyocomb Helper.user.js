@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Froyocomb Helper
 // @namespace    https://dobby233liu.neocities.org
-// @version      v1.1.6a
+// @version      v1.1.6b
 // @description  Tool for speeding up the process of finding commits from before a specific date (i.e. included with a specific build). Developed for Froyocomb, the Android pre-release source reconstruction project.
 // @author       Liu Wenyuan
 // @match        https://android.googlesource.com/*
@@ -405,7 +405,7 @@ if (document.querySelector(".RepoShortlog")) {
             setByCommitWorkingEl.style.display = "none";
 
             async function setByCommitBtnOnClickReal() {
-                const hash = prompt("Please input the full SHA256 hash of the commit to build/core/build_id.mk that you have in mind").trim();
+                const hash = prompt("Please input the full hash of the commit modifying build/(make/)core/build_id.mk that you have in mind").trim();
                 if (hash.search(/^[0-9a-f]{40}$/) == -1) { // technically an arbitary limitation but idk
                     alert("Invalid hash");
                     return;
@@ -443,7 +443,7 @@ Commit date: ${commitDate.toISOString()}
 Does this seem correct?`)) {
                     if (body.committer.email == "initial-contribution@android.com"
                         && (commitMsg.startsWith("auto import from ") || commitMsg.startsWith("Automated import from ")
-                            || commitMsg.includes("Code drop from //branches/cupcake")
+                            || commitMsg.includes("Code drop from //branches/")
                             || (body.message ?? "").includes("Automated import of CL "))) {
                         if (confirm("This commit appears to be a import from Perforce (or SVN?) (commonly seen pre-Dount).\n"
                                     + "Each import commit's dates appear to be seconds apart, which may cause detection inaccuracy.\n\n"
@@ -471,7 +471,7 @@ Does this seem correct?`)) {
         const panelRight = createFloatingPanel("right");
         panelRight.appendChild(generateButton("Locate", function() {
             const newLoc = new URL(location);
-            const start = prompt("Commit to locate in log:", newLoc.searchParams.get("s") || "").trim();
+            const start = prompt("Commit to locate in this log:", newLoc.searchParams.get("s") || "").trim();
             if (!start || start === "") return;
             newLoc.searchParams.set("s", start);
             location.href = newLoc.href;
