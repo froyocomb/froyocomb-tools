@@ -112,10 +112,10 @@ if (SITE == "android") {
     ]);
 }
 if (
-    SITE == "chromium" ||
+    SITE == "chromium"
     // idk
     // normally during 4.4 chromium-automerger@android is SLIGHTLY more reliable
-    (SITE == "android" && getRepoHomePath(location.pathname).includes("/platform/external/chromium_org"))
+    || (SITE == "android" && getRepoHomePath(location.pathname).includes("/platform/external/chromium_org"))
 ) {
     AUTHOR_ALLOWLIST = AUTHOR_ALLOWLIST.concat([
         /@(?:|[A-Za-z0-9\-\.]+?\.)chromium\.org/
