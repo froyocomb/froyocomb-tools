@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Froyocomb Helper
 // @namespace    https://dobby233liu.neocities.org
-// @version      v1.1.6b
+// @version      v1.1.6c
 // @description  Tool for speeding up the process of finding commits from before a specific date (i.e. included with a specific build). Developed for Froyocomb, the Android pre-release source reconstruction project.
 // @author       Liu Wenyuan
 // @match        https://android.googlesource.com/*
@@ -17,6 +17,26 @@
 // ==/UserScript==
 
 "use strict";
+
+// JANK
+function getForCurrentSite(config, defaultValue) {
+    return GM_getValue(SITE + "." + config, defaultValue);
+}
+function setForCurrentSite(config, value) {
+    return GM_setValue(SITE + "." + config, value);
+}
+
+if (!getForCurrentSite("referenceTag"))
+    setForCurrentSite("referenceTag", SITE == "android" ? GM_getValue("referenceTag", "android-4.0.1_r1") : "TAG");
+if (!getForCurrentSite("referenceBranch"))
+    setForCurrentSite("referenceBranch", SITE == "android" ? GM_getValue("referenceBranch", "ics-mr0-release") : "main");
+if (!getForCurrentSite("referenceTime"))
+    setForCurrentSite("referenceTime", (SITE == "android" ? GM_getValue("referenceTime") : null) ?? +(new Date("0")));
+if (SITE == "android") {
+    GM_deleteValue("referenceTag");
+    GM_deleteValue("referenceBranch");
+    GM_deleteValue("referenceTime");
+}
 
 const createElement = document.createElement.bind(document);
 
@@ -44,43 +64,12 @@ function createFloatingPanel(variant) {
 }`);
         floatingPanelStylesPresent = true;
     }
-    const panel = createElement("div");
+
+    const panel = document.body.insertAdjacentElement("afterBegin", createElement("div"));
     panel.classList.add("fch-FloatingPanel");
     panel.classList.add("fch-FloatingPanel-" + (variant ?? "bottom"));
-    document.body.insertAdjacentElement("afterBegin", panel);
     panel.tabindex = 0;
     return panel;
-}
-
-function getRepoHomePath(pathname) {
-    let explode = pathname.replace(/\/+$/, "").split("/");
-    let subpageI = -1;
-    for (let i in explode) {
-        if (explode[i].startsWith("+")) {
-            subpageI = i;
-            break;
-        }
-    }
-    if (subpageI >= 0)
-        explode.length = subpageI;
-    return explode.join("/");
-}
-
-function formatRef(refType, refName) {
-    if (refType == "" || refType == "commit")
-        return refName;
-    return `refs/${refType}/${refName}`;
-}
-
-function getPathToRef(homePath, ref, viewType="") {
-    return homePath + `/+${viewType}/` + ref;
-}
-
-function updateRefLink(link, refType, refName, viewType) {
-    const ref = formatRef(refType, refName);
-    link.href = getPathToRef(getRepoHomePath(location.pathname), ref, viewType);
-    link.innerText = "Go to " + viewType + " of " + ref;
-    return link;
 }
 
 function addListItem(list, content) {
@@ -99,8 +88,32 @@ function generateButton(text, onClick) {
     return button;
 }
 
+function getRepoHomePath(pathname) {
+    let exploded = pathname.replace(/\/+$/, "").split("/");
+    let i = -1;
+    for (const j in exploded) {
+        if (exploded[j].startsWith("+")) {
+            i = j;
+            break;
+        }
+    }
+    if (i >= 0)
+        exploded.length = i;
+    return exploded.join("/");
+}
+
+function formatRef(refType, refName) {
+    if (refType == "" || refType == "commit")
+        return refName;
+    return `refs/${refType}/${refName}`;
+}
+
+function getPathToRef(homePath, ref, viewType="") {
+    return homePath + `/+${viewType}/` + ref;
+}
+
 function parseGitilesJson(rawJson) {
-    // TODO: what is actually happening here
+    // TODO: what is Gitiles smoking
     return JSON.parse(rawJson.replace(/^\)\]\}'\n/, ""));
 }
 
@@ -152,60 +165,26 @@ const ALERTABLE_COMMENT_MESSAGE_PATTERNS = (function(site){
     return patterns;
 })(SITE);
 
-function filterCommits(commits, dateBefore) {
-    const result = [];
-
-    for (const commit of commits) {
-        const authorEmail = commit.querySelector(":scope > .CommitLog-author").title;
-        const lesser = !AUTHOR_ALLOWLIST.some(i => i instanceof RegExp ? !!authorEmail.match(i) : authorEmail.includes(i));
-        const time = new Date(commit.querySelector(":scope > .CommitLog-time").title);
-        if (isNaN(+time))
-            continue;
-        if (time <= dateBefore)
-            result.push([commit, lesser ? "-lesser" : (time >= dateBefore ? "-exact" : "")]);
-    }
-
-    return result;
+function matchesPatterns(str, pats) {
+    return pats.some(i => i instanceof RegExp ? !!str.match(i) : str.includes(i));
 }
-
-// JANK
-function getForCurrentSite(config, defaultValue) {
-    return GM_getValue(SITE + "." + config, defaultValue);
-}
-function setForCurrentSite(config, value) {
-    return GM_setValue(SITE + "." + config, value);
-}
-
-if (!getForCurrentSite("referenceTag")) {
-    setForCurrentSite("referenceTag", SITE == "android" ? GM_getValue("referenceTag", "android-4.0.1_r1") : "TAG");
-}
-if (!getForCurrentSite("referenceBranch")) {
-    setForCurrentSite("referenceBranch", SITE == "android" ? GM_getValue("referenceBranch", "ics-mr0-release") : "main");
-}
-if (!getForCurrentSite("referenceTime")) {
-    setForCurrentSite("referenceTime", (SITE == "android" ? GM_getValue("referenceTime") : null) ?? +(new Date("0")));
-}
-GM_deleteValue("referenceTag");
-GM_deleteValue("referenceBranch");
-GM_deleteValue("referenceTime");
 
 (function() {
     const headerMenu = document.querySelector(".Site-header .Header-menu");
-    if (headerMenu) {
-        for (const i of headerMenu.querySelectorAll(".Header-menuItem")) {
-            if (i.href.startsWith("https://accounts.google.com/AccountChooser") && i.innerText == "Sign in") {
-                GM_addStyle(`
+    if (!headerMenu) return;
+    for (const i of headerMenu.querySelectorAll(".Header-menuItem")) {
+        if (i.tagName == "A" && i.href.startsWith("https://accounts.google.com/AccountChooser") && i.innerText == "Sign in") {
+            GM_addStyle(`
 .fch-LoginHint {
     color: #ff2f00;
+    text-decoration: underline dotted; /* TODO: use abbr instead? */
 }
 `);
-                const loginHint = i.appendChild(createElement("span"));
-                loginHint.innerText = " (recommended)";
-                loginHint.style.textDecoration = "underline dotted";
-                loginHint.title = "Log in for more lenient rate limits";
-                loginHint.classList.add("fch-LoginHint");
-                break;
-            }
+            const loginHint = i.appendChild(createElement("span"));
+            loginHint.innerText = " (recommended)";
+            loginHint.title = "Log in for more lenient rate limits";
+            loginHint.classList.add("fch-LoginHint");
+            break;
         }
     }
 })();
@@ -215,6 +194,13 @@ if (document.querySelector(".RepoShortlog")) {
     (function() {
         const panel = createFloatingPanel();
         const list = panel.appendChild(createElement("ul"));
+
+        function updateRefLink(link, refType, refName, viewType) {
+            const ref = formatRef(refType, refName);
+            link.href = getPathToRef(getRepoHomePath(location.pathname), ref, viewType);
+            link.innerText = "Go to " + viewType + " of " + ref;
+            return link;
+        }
 
         const refTagContainer = addListItem(list, createElement("span"));
         const refTagLink = refTagContainer.appendChild(createElement("a"));
@@ -280,6 +266,22 @@ if (document.querySelector(".RepoShortlog")) {
 }
 `);
 
+        function filterCommits(commits, dateBefore) {
+            const result = [];
+
+            for (const commit of commits) {
+                const authorEmail = commit.querySelector(":scope > .CommitLog-author").title;
+                const lesser = !matchesPatterns(authorEmail, AUTHOR_ALLOWLIST);
+                const time = new Date(commit.querySelector(":scope > .CommitLog-time").title);
+                if (isNaN(+time))
+                    continue;
+                if (time <= dateBefore)
+                    result.push([commit, lesser ? "-lesser" : (time >= dateBefore ? "-exact" : "")]);
+            }
+
+            return result;
+        }
+
         const panel = createFloatingPanel();
 
         const lightedUpClz = "CommitLog-item--fch-lightedUp";
@@ -293,11 +295,26 @@ if (document.querySelector(".RepoShortlog")) {
         const messageContainerEl = lightEmUpEntry.appendChild(createElement("div"));
         messageContainerEl.classList.add("fch-LightEmUp-Message-Container");
 
-        const lightEmUpBtn = messageContainerEl.appendChild(generateButton("Light 'em up!", function() {
-            const commits = Array.from(document.querySelectorAll(".Site-content > .Container > .CommitLog > .CommitLog-item"));
+        const lightEmUpBtn = messageContainerEl.appendChild(generateButton("Light 'em up!"));
+        lightEmUpBtn.accessKey = "z";
+        lightEmUpBtn.title = "[alt+z]";
 
+        const messageEl = messageContainerEl.appendChild(createElement("span"));
+        messageEl.classList.add("fch-LightEmUp-Message");
+
+        const jumpToFirst = messageContainerEl.appendChild(createElement("a"));
+        jumpToFirst.classList.add("fch-lightedUp-JumpToFirst");
+        jumpToFirst.innerText = "(first)";
+        jumpToFirst.href = "#" + firstId;
+        jumpToFirst.style.display = "none";
+        jumpToFirst.accessKey = "v";
+        jumpToFirst.title = "[alt+v]";
+
+        lightEmUpBtn.addEventListener("click", function() {
+            const commits = Array.from(document.querySelectorAll(".Site-content > .Container > .CommitLog > .CommitLog-item"));
             const time = new Date(getForCurrentSite("referenceTime"));
             const filtered = filterCommits(commits, time);
+
             let firstFound = false;
             for (const commit of commits) {
                 commit.classList.remove(lightedUpClz);
@@ -321,20 +338,7 @@ if (document.querySelector(".RepoShortlog")) {
             messageEl.innerText = `${filtered.length} found`;
             messageEl.title = `(before ${time.toISOString()})`;
             jumpToFirst.style.display = filtered.length > 0 ? "" : "none";
-        }));
-        lightEmUpBtn.accessKey = "z";
-        lightEmUpBtn.title = "[alt+z]";
-
-        const messageEl = messageContainerEl.appendChild(createElement("span"));
-        messageEl.classList.add("fch-LightEmUp-Message");
-
-        const jumpToFirst = messageContainerEl.appendChild(createElement("a"));
-        jumpToFirst.classList.add("fch-lightedUp-JumpToFirst");
-        jumpToFirst.innerText = "(first)";
-        jumpToFirst.href = "#" + firstId;
-        jumpToFirst.style.display = "none";
-        jumpToFirst.accessKey = "v";
-        jumpToFirst.title = "[alt+v]";
+        });
 
         const nextButtonOrig = document.querySelector(".LogNav-next");
         const prevButtonOrig = document.querySelector(".LogNav-prev");
@@ -500,9 +504,10 @@ Does this seem correct?`)) {
             const commitTimeEl = committerRow.querySelector(":scope > td:nth-child(3)");
             const commitTime = new Date(commitTimeEl.innerText);
             const commitMsg = document.body.querySelector(".Container > .MetadataMessage")?.innerText;
-            const lesser = commitMsg ? ALERTABLE_COMMENT_MESSAGE_PATTERNS.some(i => i instanceof RegExp ? !!commitMsg.match(i) : commitMsg.includes(i)) : false;
+            const lesser = commitMsg ? matchesPatterns(commitMsg, ALERTABLE_COMMENT_MESSAGE_PATTERNS) : false;
             if (!isNaN(+commitTime) && commitTime <= refTime) {
                 // <arbitary color> or .CommitLog-item--fch-lightedUp
+                // TODO: do I use CSS for this?
                 commitTimeEl.style.backgroundColor = lesser ? "#aadfff77" : "#ffff00";
             }
         }
