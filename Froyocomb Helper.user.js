@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Froyocomb Helper
 // @namespace    https://dobby233liu.neocities.org
-// @version      v1.1.2a
+// @version      v1.1.3
 // @description  Helps finding commits before a specific date (i.e. included with a specific build) faster
 // @author       Liu Wenyuan
 // @match        https://android.googlesource.com/*
@@ -13,10 +13,12 @@
 // @run-at       document-end
 // @downloadURL  https://gist.github.com/Dobby233Liu/c55c1e9c816facd153eeb19e386f53fd/raw/Froyocomb Helper.user.js
 // @updateURL    https://gist.github.com/Dobby233Liu/c55c1e9c816facd153eeb19e386f53fd/raw/Froyocomb Helper.user.js
-// @supportURL   https://gist.github.com/Dobby233Liu/c55c1e9c816facd153eeb19e386f53fd
+// @supportURL   https://gist.github.com/Dobby233Liu/c55c1e9c816facd153eeb19e386f53fd#comments
 // ==/UserScript==
 
 "use strict";
+
+const createElement = document.createElement.bind(document);
 
 function createFloatingPanel(variant) {
     GM_addStyle(`
@@ -38,7 +40,7 @@ function createFloatingPanel(variant) {
 .fch-FloatingPanel button {
     font: inherit;
 }`);
-    const panel = document.createElement("div");
+    const panel = createElement("div");
     panel.classList.add("fch-FloatingPanel");
     panel.classList.add("fch-FloatingPanel-" + (variant ?? "bottom"));
     document.body.insertAdjacentElement("afterBegin", panel);
@@ -78,14 +80,14 @@ function updateRefLink(link, refType, refName, viewType) {
 }
 
 function addListItem(list, content) {
-    const item = list.appendChild(document.createElement("li"));
+    const item = list.appendChild(createElement("li"));
     if (content)
         item.appendChild(content);
     return content;
 }
 
 function generateButton(text, onClick) {
-    const button = document.createElement("button");
+    const button = createElement("button");
     button.type = "button";
     button.innerText = text;
     if (onClick)
@@ -94,44 +96,52 @@ function generateButton(text, onClick) {
 }
 
 function parseGitilesJson(rawJson) {
+    // TODO: what is actually happening here
     return JSON.parse(rawJson.replace(/^\)\]\}'\n/, ""));
 }
 
 const SITE = location.hostname.split(".").reverse()[2];
 
-let AUTHOR_ALLOWLIST = [ // from inside google
-    /@(?:|[A-Za-z0-9\-\.]+?\.)google\.com/, // look idk
-    /%(?:|[A-Za-z0-9\-\.]+?\.)google\.com@gtempaccount\.com/
-];
-if (SITE == "android") {
-    AUTHOR_ALLOWLIST = AUTHOR_ALLOWLIST.concat([ // from inside android
-        /@(?:|[A-Za-z0-9\-\.]+?\.)android\.com/,
-        /%(?:|[A-Za-z0-9\-\.]+?\.)android\.com@gtempaccount\.com/,
-        /@android$/,
-        /@android@[a-f0-9\-]+$/,
-    ]);
-}
-if (
-    SITE == "chromium"
-    // idk
-    // normally during 4.4 chromium-automerger@android is SLIGHTLY more reliable
-    || (SITE == "android" && getRepoHomePath(location.pathname).includes("/platform/external/chromium_org"))
-) {
-    AUTHOR_ALLOWLIST = AUTHOR_ALLOWLIST.concat([
-        /@(?:|[A-Za-z0-9\-\.]+?\.)chromium\.org/
-    ]);
-}
+const AUTHOR_ALLOWLIST = (function(site) {
+    let authorAllowlist = [ // from inside google. note that this includes corp-partner which might be undesirable, but we'll see
+        /@(?:|[A-Za-z0-9\-\.]+?\.)google\.com/, // look idk
+        /%(?:|[A-Za-z0-9\-\.]+?\.)google\.com@gtempaccount\.com/
+    ];
+    if (site == "android") {
+        authorAllowlist = authorAllowlist.concat([ // from inside android
+            /@(?:|[A-Za-z0-9\-\.]+?\.)android\.com/,
+            /%(?:|[A-Za-z0-9\-\.]+?\.)android\.com@gtempaccount\.com/,
+            /@android$/,
+            /@android@[a-f0-9\-]+$/,
+        ]);
+    }
+    if (
+        site == "chromium"
+        // idk
+        // normally during 4.4 chromium-automerger@android is SLIGHTLY more reliable
+        || (site == "android" && getRepoHomePath(location.pathname).includes("/platform/external/chromium_org"))
+    ) {
+        authorAllowlist = authorAllowlist.concat([
+            /@(?:|[A-Za-z0-9\-\.]+?\.)chromium\.org/
+        ]);
+    }
+    return authorAllowlist;
+})(SITE);
+
 // usually for stuff that probably indicates a upstream commit
-let ALERTABLE_COMMENT_MESSAGE_PATTERNS = [
-    "\ngit-svn-id: "
-];
-if (SITE == "android") {
-    ALERTABLE_COMMENT_MESSAGE_PATTERNS = ALERTABLE_COMMENT_MESSAGE_PATTERNS.concat([
-        /\nReview URL: http(?:s)?:\/\/codereview\.chromium\.org\//,
-        /\nReview URL: http(?:s)?:\/\/chromiumcodereview\.appspot\.com\//,
-        /\nReviewed-on: http(?:s):\/\/chromium-review\.googlesource\.com\//
-    ]);
-}
+const ALERTABLE_COMMENT_MESSAGE_PATTERNS = (function(site){
+    let patterns = [
+        "\ngit-svn-id: "
+    ];
+    if (site == "android") {
+        patterns = patterns.concat([
+            /\nReview URL: http(?:s)?:\/\/codereview\.chromium\.org\//,
+            /\nReview URL: http(?:s)?:\/\/chromiumcodereview\.appspot\.com\//,
+            /\nReviewed-on: http(?:s)?:\/\/chromium-review\.googlesource\.com\//
+        ]);
+    }
+    return patterns;
+})(SITE);
 
 function filterCommits(commits, dateBefore) {
     const result = [];
@@ -174,10 +184,10 @@ if (document.querySelector(".RepoShortlog")) {
     // This part is almost useless outside of android
     (function() {
         const panel = createFloatingPanel();
-        const list = panel.appendChild(document.createElement("ul"));
+        const list = panel.appendChild(createElement("ul"));
 
-        const refTagContainer = addListItem(list, document.createElement("span"));
-        const refTagLink = refTagContainer.appendChild(document.createElement("a"));
+        const refTagContainer = addListItem(list, createElement("span"));
+        const refTagLink = refTagContainer.appendChild(createElement("a"));
         function updateRefTagLink() {
             updateRefLink(refTagLink, "tags", getForCurrentSite("referenceTag"), "log");
         }
@@ -190,8 +200,8 @@ if (document.querySelector(".RepoShortlog")) {
             updateRefTagLink();
         }));
 
-        const refBranchContainer = addListItem(list, document.createElement("span"));
-        const refBranchLink = refBranchContainer.appendChild(document.createElement("a"));
+        const refBranchContainer = addListItem(list, createElement("span"));
+        const refBranchLink = refBranchContainer.appendChild(createElement("a"));
         function updateRefBranchLink() {
             updateRefLink(refBranchLink, "heads", getForCurrentSite("referenceBranch"), "log");
         }
@@ -247,10 +257,10 @@ if (document.querySelector(".RepoShortlog")) {
         const lightedUpLesserClz = "CommitLog-item--fch-lightedUp-lesser";
         const firstId = "fch-lightedUp-First";
 
-        const list = panel.appendChild(document.createElement("ul"));
+        const list = panel.appendChild(createElement("ul"));
 
-        const lightEmUpEntry = list.appendChild(document.createElement("li"));
-        const messageContainerEl = lightEmUpEntry.appendChild(document.createElement("div"));
+        const lightEmUpEntry = list.appendChild(createElement("li"));
+        const messageContainerEl = lightEmUpEntry.appendChild(createElement("div"));
         messageContainerEl.classList.add("fch-LightEmUp-Message-Container");
 
         const lightEmUpBtn = messageContainerEl.appendChild(generateButton("Light 'em up!", function() {
@@ -260,17 +270,14 @@ if (document.querySelector(".RepoShortlog")) {
             const filtered = filterCommits(commits, time);
             let firstFound = false;
             for (const commit of commits) {
+                commit.classList.remove(lightedUpClz);
+                commit.classList.remove(lightedUpExactClz);
+                commit.classList.remove(lightedUpLesserClz);
                 const found = filtered.find(i => i[0] === commit);
                 if (!found) {
-                    commit.classList.remove(lightedUpClz);
-                    commit.classList.remove(lightedUpExactClz);
-                    commit.classList.remove(lightedUpLesserClz);
                     if (commit.id == firstId)
                         delete commit.id;
                 } else {
-                    commit.classList.remove(lightedUpClz);
-                    commit.classList.remove(lightedUpExactClz);
-                    commit.classList.remove(lightedUpLesserClz);
                     commit.classList.add(lightedUpClz + found[1]);
                     if (!firstFound) {
                         commit.id = firstId;
@@ -288,10 +295,10 @@ if (document.querySelector(".RepoShortlog")) {
         lightEmUpBtn.accessKey = "z";
         lightEmUpBtn.title = "[alt+z]";
 
-        const messageEl = messageContainerEl.appendChild(document.createElement("span"));
+        const messageEl = messageContainerEl.appendChild(createElement("span"));
         messageEl.classList.add("fch-LightEmUp-Message");
 
-        const jumpToFirst = messageContainerEl.appendChild(document.createElement("a"));
+        const jumpToFirst = messageContainerEl.appendChild(createElement("a"));
         jumpToFirst.classList.add("fch-lightedUp-JumpToFirst");
         jumpToFirst.innerText = "(first)";
         jumpToFirst.href = "#" + firstId;
@@ -317,19 +324,19 @@ if (document.querySelector(".RepoShortlog")) {
             }
         }
 
-        const refTimeEntry = list.appendChild(document.createElement("li"));
+        const refTimeEntry = list.appendChild(createElement("li"));
         refTimeEntry.classList.add("fch-LightEmUp-RefTime-Entry");
-        const refTimeContainer = refTimeEntry.appendChild(document.createElement("span"));
+        const refTimeContainer = refTimeEntry.appendChild(createElement("span"));
         const refTimePrefix = refTimeContainer.appendChild(document.createTextNode("Highlight commits from before "));
-        const refTimeDisp = refTimeContainer.appendChild(document.createElement("strong"));
+        const refTimeDisp = refTimeContainer.appendChild(createElement("strong"));
         function updateRefTimeDisp() {
             refTimeDisp.innerText = new Date(getForCurrentSite("referenceTime")).toISOString();
         }
         updateRefTimeDisp();
 
-        const refTimeSetterEntry = list.appendChild(document.createElement("li"));
+        const refTimeSetterEntry = list.appendChild(createElement("li"));
         refTimeSetterEntry.classList.add("fch-LightEmUp-RefTimeSetter-Entry");
-        const refTimeSetterContainer = refTimeSetterEntry.appendChild(document.createElement("span"));
+        const refTimeSetterContainer = refTimeSetterEntry.appendChild(createElement("span"));
 
         refTimeSetterContainer.appendChild(document.createTextNode("(Set "));
 
@@ -363,13 +370,13 @@ if (document.querySelector(".RepoShortlog")) {
         if (SITE == "android") {
             const setByCommitBtn = refTimeSetterContainer.appendChild(generateButton("by tag commit"));
             rtsTerminateQuote();
-            const setByCommitWorkingEl = refTimeSetterContainer.appendChild(document.createElement("span"));
+            const setByCommitWorkingEl = refTimeSetterContainer.appendChild(createElement("span"));
             setByCommitWorkingEl.innerText = " (working...)";
             setByCommitWorkingEl.style.display = "none";
 
             async function setByCommitBtnOnClickReal() {
                 const hash = prompt("Please input the full SHA256 hash of the commit to build/core/build_id.mk that you have in mind").trim();
-                if (hash.search(/^[0-9a-f]{40}$/) == -1) {
+                if (hash.search(/^[0-9a-f]{40}$/) == -1) { // technically an arbitary limitation but idk
                     alert("Invalid hash");
                     return;
                 }
@@ -377,27 +384,26 @@ if (document.querySelector(".RepoShortlog")) {
                 const url = new URL(getPathToRef("/platform/build", formatRef("commit", hash)), location.origin);
                 url.searchParams.set("format", "JSON");
 
-                try {
-                    const response = await fetch(url.href);
+                const response = await fetch(url.href);
 
-                    if (!response.ok) {
-                        const errMsg = await response.text();
-                        console.error(new Error(errMsg));
-                        alert("Status: " + response.status + "\n\n" + errMsg.trim());
-                        return;
-                    }
+                if (!response.ok) {
+                    const errMsg = await response.text();
+                    console.error(new Error(errMsg));
+                    alert("Status: " + response.status + "\n\n" + errMsg.trim());
+                    return;
+                }
 
-                    const body = parseGitilesJson(await response.text());
+                const body = parseGitilesJson(await response.text());
 
-                    const commitMsg = (body.message ?? "").split("\n")[0];
-                    let commitDate = new Date(body.committer.time);
-                    if (isNaN(+commitDate)) {
-                        alert("Invalid date");
-                        return;
-                    }
+                const commitMsg = (body.message ?? "").split("\n")[0];
+                let commitDate = new Date(body.committer.time);
+                if (isNaN(+commitDate)) {
+                    alert("Invalid date");
+                    return;
+                }
 
-                    if (confirm(
-                        `Message: ${commitMsg}
+                if (confirm(
+                    `Message: ${commitMsg}
 
 Authored by: ${body.author.name} <${body.author.email}>
 Committed by: ${body.committer.name} <${body.committer.email}>
@@ -405,27 +411,27 @@ Committed by: ${body.committer.name} <${body.committer.email}>
 Commit date: ${commitDate.toISOString()}
 
 Does this seem correct?`)) {
-                        if (body.committer.email == "initial-contribution@android.com"
-                            && (commitMsg.startsWith("auto import from ") || commitMsg.startsWith("Automated import from ")
-                                || (body.message ?? "").includes("Automated import of CL "))) {
-                            if (confirm("This commit appears to be a import from SVN (common pre-Dount).\n"
-                                        + "Each import commit's dates appear to be seconds apart, which may cause detection inaccuracy.\n\n"
-                                        + "Adjust reference time by 5 minutes for safety?"))
-                                commitDate = new Date(commitDate.getTime() + 5*60000);
-                        }
-                        setForCurrentSite("referenceTime", +commitDate);
-                        updateRefTimeDisp();
+                    if (body.committer.email == "initial-contribution@android.com"
+                        && (commitMsg.startsWith("auto import from ") || commitMsg.startsWith("Automated import from ")
+                            || commitMsg.includes("Code drop from //branches/cupcake")
+                            || (body.message ?? "").includes("Automated import of CL "))) {
+                        if (confirm("This commit appears to be a import from Perforce (or SVN?) (commonly seen pre-Dount).\n"
+                                    + "Each import commit's dates appear to be seconds apart, which may cause detection inaccuracy.\n\n"
+                                    + "Adjust reference time by 5 minutes for safety?"))
+                            commitDate = new Date(commitDate.getTime() + 5*60000);
                     }
-                } catch (ex) {
-                    console.error(ex);
-                    alert(ex.stack);
+                    setForCurrentSite("referenceTime", +commitDate);
+                    updateRefTimeDisp();
                 }
             }
             setByCommitBtn.addEventListener("click", async function() {
                 setByCommitWorkingEl.style.display = "";
                 try {
                     await setByCommitBtnOnClickReal();
-                } catch (_) {}
+                } catch (ex) {
+                    console.error(ex);
+                    alert(ex.stack);
+                }
                 setByCommitWorkingEl.style.display = "none";
             });
         } else {
@@ -435,7 +441,7 @@ Does this seem correct?`)) {
         const panelRight = createFloatingPanel("right");
         panelRight.appendChild(generateButton("Locate", function() {
             const newLoc = new URL(location);
-            const start = prompt("Commit to locate:", newLoc.searchParams.get("s") || "").trim();
+            const start = prompt("Commit to locate in log:", newLoc.searchParams.get("s") || "").trim();
             if (!start || start === "") return;
             newLoc.searchParams.set("s", start);
             location.href = newLoc.href;
@@ -450,9 +456,9 @@ Does this seem correct?`)) {
             const headLogUrl = new URL(getPathToRef(getRepoHomePath(location.pathname), "HEAD", "log"), location.origin);
             headLogUrl.searchParams.set("s", commit);
             dLog.appendChild(document.createTextNode(" "));
-            const headLogLinkContainer = dLog.appendChild(document.createElement("span"));
+            const headLogLinkContainer = dLog.appendChild(createElement("span"));
             headLogLinkContainer.appendChild(document.createTextNode("["));
-            const headLogLink = headLogLinkContainer.appendChild(document.createElement("a"));
+            const headLogLink = headLogLinkContainer.appendChild(createElement("a"));
             headLogLink.href = headLogUrl.href;
             headLogLink.innerText = "log@HEAD";
             headLogLinkContainer.appendChild(document.createTextNode("]"));
