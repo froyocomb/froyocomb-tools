@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Froyocomb Helper
 // @namespace    https://dobby233liu.neocities.org
-// @version      v1.1.4
+// @version      v1.1.5
 // @description  Tool for speeding up the process of finding commits from before a specific date (i.e. included with a specific build). Developed for Froyocomb, the Android pre-release source reconstruction project.
 // @author       Liu Wenyuan
 // @match        https://android.googlesource.com/*
@@ -102,8 +102,13 @@ function parseGitilesJson(rawJson) {
 
 const SITE = location.hostname.split(".").reverse()[2];
 
+// if author email in a commit doesn't match one of these patterns, the commit potentially comes from upstream,
+// or is likely a partner/AOSP ext contribution that probably got merged in by Google later
 const AUTHOR_ALLOWLIST = (function(site) {
-    let authorAllowlist = [ // from inside google. note that this includes corp-partner which might be undesirable, but we'll see
+    // from inside google (mostly)
+    // note that this implictly includes corp-partner.google.com which might be undesirable, but since we haven't/won't get to the point
+    // where we'd need to mark those, we'll see
+    let authorAllowlist = [
         /@(?:|[A-Za-z0-9\-\.]+?\.)google\.com/, // look idk
         /%(?:|[A-Za-z0-9\-\.]+?\.)google\.com@gtempaccount\.com/
     ];
@@ -128,7 +133,7 @@ const AUTHOR_ALLOWLIST = (function(site) {
     return authorAllowlist;
 })(SITE);
 
-// usually for stuff that probably indicates a upstream commit
+// usually signs that may indicate a upstream commit
 const ALERTABLE_COMMENT_MESSAGE_PATTERNS = (function(site){
     let patterns = [
         "\ngit-svn-id: "
