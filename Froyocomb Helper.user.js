@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Froyocomb Helper
 // @namespace    https://dobby233liu.neocities.org
-// @version      v1.1.6d
+// @version      v1.1.7
 // @description  Tool for speeding up the process of finding commits from before a specific date (i.e. included with a specific build). Developed for Froyocomb, the Android pre-release source reconstruction project.
 // @author       Liu Wenyuan
 // @match        https://android.googlesource.com/*
@@ -90,18 +90,102 @@ function generateButton(text, onClick) {
     return button;
 }
 
-function getRepoHomePath(pathname) {
-    let exploded = pathname.replace(/\/+$/, "").split("/");
-    let i = -1;
-    for (const j in exploded) {
-        if (exploded[j].startsWith("+")) {
-            i = j;
-            break;
-        }
+let copyButtonStylePresent = false;
+function generateCopyButtonGenerator(title) {
+    if (!copyButtonStylePresent) {
+        GM_addStyle(`
+.fch-CopyButton {
+    font: inherit;
+    position: relative;
+    margin-left: 3px;
+    margin-right: 2px;
+}
+
+@keyframes fch-CopyButton-Toast-Anim {
+    from, 50% {
+        opacity: 1;
     }
+    to {
+        opacity: 0;
+        transform: translate3d(-50%, calc(-100% - 8px), 0);
+    }
+}
+
+.fch-CopyButton-Toast {
+    position: absolute;
+    top: -4px;
+    left: 50%;
+    transform: translate3d(-50%, -100%, 0);
+    z-index: 10;
+    pointer-events: none;
+    background: #ffdb00;
+    border: #ffe547 2px solid;
+    padding: 2px 6px;
+    border-radius: 6px;
+    opacity: 0;
+}
+
+.fch-CopyButton-Toast-Done, .fch-CopyButton-Toast-Error {
+    animation: fch-CopyButton-Toast-Anim 1s ease-in-out;
+}
+
+.fch-CopyButton-Toast-Error {
+    background-color: #ff003cee;
+    border-color: #ff1757;
+}`);
+    }
+
+    const button = generateButton("\u{1F4CB}");
+    button.classList.add("fch-CopyButton");
+    button.title = title ? title : "Copy";
+    const toast = button.appendChild(createElement("div"));
+    toast.classList.add("fch-CopyButton-Toast");
+    toast.style.display = "none";
+
+    return function(text) {
+        const newButton = button.cloneNode(true);
+        const newToast = newButton.querySelector(".fch-CopyButton-Toast");
+        newToast.addEventListener("animationend", function(ev) {
+            console.log(ev);
+            if (ev.animationName == "fch-CopyButton-Toast-Anim")
+                ev.target.style.display = "none";
+        });
+        newButton.addEventListener("click", function(ev) {
+            (async function(ev) {
+                let ok = true;
+                try {
+                    await navigator.clipboard.writeText(text);
+                } catch (ex) {
+                    console.error(ex);
+                    ok = false;
+                }
+
+                if (!newToast) return;
+                newToast.classList.remove("fch-CopyButton-Toast-Done");
+                newToast.classList.remove("fch-CopyButton-Toast-Error");
+                requestAnimationFrame(() => {
+                    newToast.style.display = "";
+                    void(newToast.offsetWidth); // crime
+                    if (ok) {
+                        newToast.classList.add("fch-CopyButton-Toast-Done");
+                        newToast.innerText = "Copied!";
+                    } else {
+                        newToast.classList.add("fch-CopyButton-Toast-Error");
+                        newToast.innerText = "Copy failed!";
+                    }
+                });
+            })();
+            return true;
+        });
+        return newButton;
+    }
+}
+
+function getRepoHomePath(pathname) {
+    const i = pathname.indexOf("/+");
     if (i >= 0)
-        exploded.length = i;
-    return exploded.join("/");
+        return pathname.substring(0, i);
+    return pathname.replace(/\/+$/, "");
 }
 
 function formatRef(refType, refName) {
@@ -267,7 +351,7 @@ if (document.querySelector(".RepoShortlog")) {
 `);
 
         function filterCommits(commits, dateBefore) {
-            const result = [];
+            const result = {};
 
             for (const commit of commits) {
                 const authorEmail = commit.querySelector(":scope > .CommitLog-author").title;
@@ -276,10 +360,23 @@ if (document.querySelector(".RepoShortlog")) {
                 if (isNaN(+time))
                     continue;
                 if (time <= dateBefore)
-                    result.push([commit, lesser ? "-lesser" : (time >= dateBefore ? "-exact" : "")]);
+                    result[commit.querySelector(":scope > .CommitLog-sha1").href] = lesser ? "-lesser" : (time >= dateBefore ? "-exact" : "");
             }
 
             return result;
+        }
+
+        const commits = Array.from(document.querySelectorAll(".Site-content > .Container > .CommitLog > .CommitLog-item"));
+        const createCopyButton = generateCopyButtonGenerator("Copy hash");
+        for (const commit of commits) {
+            const hashEl = commit.querySelector(".CommitLog-sha1");
+            if (!hashEl) continue;
+            const hash = hashEl.href.split("/").reverse()[0];
+            if (!(hash.length == 40 && hash.startsWith(hashEl.innerText))) {
+                console.warn("[FCH] Warning: hash extraction failed for", hashEl);
+                continue;
+            }
+            hashEl.parentNode.insertBefore(createCopyButton(hash), hashEl.nextSibling);
         }
 
         const panel = createFloatingPanel();
@@ -311,7 +408,6 @@ if (document.querySelector(".RepoShortlog")) {
         jumpToFirst.title = "[alt+v]";
 
         lightEmUpBtn.addEventListener("click", function() {
-            const commits = Array.from(document.querySelectorAll(".Site-content > .Container > .CommitLog > .CommitLog-item"));
             const time = new Date(getForCurrentSite("referenceTime"));
             const filtered = filterCommits(commits, time);
 
@@ -320,12 +416,12 @@ if (document.querySelector(".RepoShortlog")) {
                 commit.classList.remove(lightedUpClz);
                 commit.classList.remove(lightedUpExactClz);
                 commit.classList.remove(lightedUpLesserClz);
-                const found = filtered.find(i => i[0] === commit);
-                if (!found) {
+                const found = filtered[commit.querySelector(":scope > .CommitLog-sha1").href];
+                if (found === undefined) {
                     if (commit.id == firstId)
                         delete commit.id;
                 } else {
-                    commit.classList.add(lightedUpClz + found[1]);
+                    commit.classList.add(lightedUpClz + found);
                     if (!firstFound) {
                         commit.id = firstId;
                         firstFound = true;
@@ -335,9 +431,11 @@ if (document.querySelector(".RepoShortlog")) {
                 }
             }
 
-            messageEl.innerText = `${filtered.length} found`;
+            console.log(filtered);
+            const filteredCount = Object.keys(filtered).length;
+            messageEl.innerText = `${filteredCount} found`;
             messageEl.title = `(before ${time.toISOString()})`;
-            jumpToFirst.style.display = filtered.length > 0 ? "" : "none";
+            jumpToFirst.style.display = filteredCount > 0 ? "" : "none";
         });
 
         const nextButtonOrig = document.querySelector(".LogNav-next");
@@ -485,7 +583,9 @@ Does this seem correct?`)) {
     (function() {
         const commitRow = document.querySelector(".Metadata > table > tbody > tr:nth-child(1)");
         if (commitRow.querySelector(":scope > .Metadata-title").innerText == "commit") {
-            const commit = commitRow.querySelector(":scope > td:nth-child(2)").innerText;
+            const commitEl = commitRow.querySelector(":scope > td:nth-child(2)");
+            const commit = commitEl.innerText;
+            commitEl.appendChild(generateCopyButtonGenerator("Copy hash")(commit));
             const dLog = commitRow.querySelector(":scope > td:nth-child(3)");
             const headLogUrl = new URL(getPathToRef(getRepoHomePath(location.pathname), "HEAD", "log"), location.origin);
             headLogUrl.searchParams.set("s", commit);
