@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Froyocomb Helper
 // @namespace    https://dobby233liu.neocities.org
-// @version      v1.1.7a
+// @version      v1.1.7b
 // @description  Tool for speeding up the process of finding commits from before a specific date (i.e. included with a specific build). Developed for Froyocomb, the Android pre-release source reconstruction project.
 // @author       Liu Wenyuan
 // @match        https://android.googlesource.com/*
@@ -97,8 +97,8 @@ function generateCopyButtonGenerator(title) {
 .fch-CopyButton {
     font: inherit;
     position: relative;
-    margin-left: 3px;
-    margin-right: 2px;
+    margin-left: 2px;
+    margin-right: 3px;
 }
 
 @keyframes fch-CopyButton-Toast-Anim {
@@ -147,7 +147,6 @@ function generateCopyButtonGenerator(title) {
         const newButton = button.cloneNode(true);
         const newToast = newButton.querySelector(".fch-CopyButton-Toast");
         newToast.addEventListener("animationend", function(ev) {
-            console.log(ev);
             if (ev.animationName == "fch-CopyButton-Toast-Anim")
                 ev.target.style.display = "none";
         });
@@ -157,7 +156,7 @@ function generateCopyButtonGenerator(title) {
                 try {
                     await navigator.clipboard.writeText(text);
                 } catch (ex) {
-                    console.error(ex);
+                    console.error("[FCH] Copy to clipboard error", ex);
                     ok = false;
                 }
 
@@ -374,7 +373,7 @@ if (document.querySelector(".RepoShortlog")) {
             if (!hashEl) continue;
             const hash = hashEl.href.split("/").reverse()[0];
             if (!(hash.length == 40 && hash.startsWith(hashEl.innerText))) {
-                console.warn("[FCH] Warning: hash extraction failed for", hashEl);
+                console.warn("[FCH] Hash extraction failed, sha1 link element:", hashEl);
                 continue;
             }
             hashEl.parentNode.insertBefore(createCopyButton(hash), hashEl.nextSibling);
@@ -432,7 +431,6 @@ if (document.querySelector(".RepoShortlog")) {
                 }
             }
 
-            console.log(filtered);
             const filteredCount = Object.keys(filtered).length;
             messageEl.innerText = `${filteredCount} found`;
             messageEl.title = `(before ${time.toISOString()})`;
@@ -521,7 +519,7 @@ if (document.querySelector(".RepoShortlog")) {
 
                 if (!response.ok) {
                     const errMsg = await response.text();
-                    console.error(new Error(errMsg));
+                    console.error("[FCH] platform/build commit request error", new Error(errMsg));
                     alert("Status: " + response.status + "\n\n" + errMsg.trim());
                     return;
                 }
@@ -562,7 +560,7 @@ Does this seem correct?`)) {
                 try {
                     await setByCommitBtnOnClickReal();
                 } catch (ex) {
-                    console.error(ex);
+                    console.error("[FCH] setByCommitBtnOnClickReal error", ex);
                     alert(ex.stack);
                 }
                 setByCommitWorkingEl.style.display = "none";
