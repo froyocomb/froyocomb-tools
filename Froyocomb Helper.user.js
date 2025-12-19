@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Froyocomb Helper
 // @namespace    https://dobby233liu.neocities.org
-// @version      v1.1.7
+// @version      v1.1.7a
 // @description  Tool for speeding up the process of finding commits from before a specific date (i.e. included with a specific build). Developed for Froyocomb, the Android pre-release source reconstruction project.
 // @author       Liu Wenyuan
 // @match        https://android.googlesource.com/*
@@ -133,6 +133,7 @@ function generateCopyButtonGenerator(title) {
     background-color: #ff003cee;
     border-color: #ff1757;
 }`);
+        copyButtonStylePresent = true;
     }
 
     const button = generateButton("\u{1F4CB}");
