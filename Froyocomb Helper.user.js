@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Froyocomb Helper
 // @namespace    https://dobby233liu.neocities.org
-// @version      v1.1.8
+// @version      v1.1.8a
 // @description  Tool for speeding up the process of finding commits from before a specific date (i.e. included with a specific build). Developed for Froyocomb, the Android pre-release source reconstruction project.
 // @author       Liu Wenyuan
 // @match        https://android.googlesource.com/*
@@ -604,7 +604,7 @@ Does this seem correct?`)) {
             const committerEl = committerRow.querySelector(":scope > td:nth-child(2)");
             const committerEmailMatch = committerEl.innerText.match("<([^<>]+?)>$");
             if (committerEmailMatch && matchesPatterns(committerEmailMatch[1], AUTHOR_ALLOWLIST))
-                committerEl.style.backgroundColor = "#ffff0066";
+                committerEl.style.backgroundColor = "#ffee3366";
             const refTime = new Date(getForCurrentSite("referenceTime"));
             const commitTimeEl = committerRow.querySelector(":scope > td:nth-child(3)");
             const commitTime = new Date(commitTimeEl.innerText);
