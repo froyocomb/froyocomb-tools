@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Froyocomb Helper
 // @namespace    https://dobby233liu.neocities.org
-// @version      v1.1.7b
+// @version      v1.1.8
 // @description  Tool for speeding up the process of finding commits from before a specific date (i.e. included with a specific build). Developed for Froyocomb, the Android pre-release source reconstruction project.
 // @author       Liu Wenyuan
 // @match        https://android.googlesource.com/*
@@ -63,7 +63,8 @@ function createFloatingPanel(variant) {
 
 .fch-FloatingPanel button {
     font: inherit;
-}`);
+}
+`);
         floatingPanelStylesPresent = true;
     }
 
@@ -132,7 +133,8 @@ function generateCopyButtonGenerator(title) {
 .fch-CopyButton-Toast-Error {
     background-color: #ff003cee;
     border-color: #ff1757;
-}`);
+}
+`);
         copyButtonStylePresent = true;
     }
 
@@ -599,6 +601,10 @@ Does this seem correct?`)) {
 
         const committerRow = document.querySelector(".Metadata > table > tbody > tr:nth-child(3)");
         if (committerRow.querySelector(":scope > .Metadata-title").innerText == "committer") {
+            const committerEl = committerRow.querySelector(":scope > td:nth-child(2)");
+            const committerEmailMatch = committerEl.innerText.match("<([^<>]+?)>$");
+            if (committerEmailMatch && matchesPatterns(committerEmailMatch[1], AUTHOR_ALLOWLIST))
+                committerEl.style.backgroundColor = "#ffff0066";
             const refTime = new Date(getForCurrentSite("referenceTime"));
             const commitTimeEl = committerRow.querySelector(":scope > td:nth-child(3)");
             const commitTime = new Date(commitTimeEl.innerText);
