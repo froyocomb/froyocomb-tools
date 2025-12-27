@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Froyocomb Helper
 // @namespace    https://dobby233liu.neocities.org
-// @version      v1.1.9
+// @version      v1.1.10
 // @description  Tool for speeding up the process of finding commits from before a specific date (i.e. included with a specific build). Developed for Froyocomb, the Android pre-release source reconstruction project.
 // @author       Liu Wenyuan
 // @match        https://android.googlesource.com/*
@@ -103,27 +103,31 @@ function createCopyButtonFactory(title) {
 }
 
 @keyframes fch-CopyButton-Toast-Anim {
-    from, 50% {
+    from, 33.333% {
         opacity: 1;
     }
     to {
         opacity: 0;
-        transform: translate3d(-50%, calc(-100% - 8px), 0);
+        bottom: calc(100% + 1em);
     }
 }
 
 .fch-CopyButton-Toast {
     position: absolute;
-    top: -4px;
     left: 50%;
-    transform: translate3d(-50%, -100%, 0);
+    transform: translate3d(-50%, 0, 0);
+    bottom: calc(100% + 0.3em);
     z-index: 10;
-    pointer-events: none;
-    background: #ffdb00;
-    border: #ffe547 2px solid;
+
+    width: max-content;
     padding: 2px 6px;
+    background: #ffdb00f0;
+    border: #ffe54755 2px solid;
     border-radius: 6px;
     opacity: 0;
+}
+.fch-CopyButton-Toast > * {
+    pointer-events: none;
 }
 
 .fch-CopyButton-Toast-Done, .fch-CopyButton-Toast-Error {
@@ -131,8 +135,8 @@ function createCopyButtonFactory(title) {
 }
 
 .fch-CopyButton-Toast-Error {
-    background-color: #ff003cee;
-    border-color: #ff1757;
+    background-color: #ff0004f0;
+    border-color: #ff474755;
 }
 `);
         copyButtonStylePresent = true;
@@ -147,20 +151,27 @@ function createCopyButtonFactory(title) {
 
     return function(text, copyCb) {
         const newButton = button.cloneNode(true);
+
         const newToast = newButton.querySelector(".fch-CopyButton-Toast");
         newToast.addEventListener("animationend", function(ev) {
             if (ev.animationName == "fch-CopyButton-Toast-Anim")
                 ev.target.style.display = "none";
         });
+        newToast.addEventListener("click", function(ev) {
+            // prevent toast from triggering copy
+            ev.stopPropagation();
+        });
+
         newButton.addEventListener("click", function(ev) {
             (async function(ev) {
                 let ok = true;
                 try {
                     await navigator.clipboard.writeText(text);
                 } catch (ex) {
-                    console.error("[FCH] Copy to clipboard error", ex);
+                    console.error("[FCH] Copy to clipboard failed", ex);
                     ok = false;
                 }
+
                 if (typeof copyCb == "function")
                     copyCb(text);
 
@@ -179,7 +190,6 @@ function createCopyButtonFactory(title) {
                     }
                 });
             })();
-            return true;
         });
         return newButton;
     }
