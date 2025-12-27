@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Froyocomb Helper
 // @namespace    https://dobby233liu.neocities.org
-// @version      v1.1.8a
+// @version      v1.1.9
 // @description  Tool for speeding up the process of finding commits from before a specific date (i.e. included with a specific build). Developed for Froyocomb, the Android pre-release source reconstruction project.
 // @author       Liu Wenyuan
 // @match        https://android.googlesource.com/*
@@ -92,7 +92,7 @@ function generateButton(text, onClick) {
 }
 
 let copyButtonStylePresent = false;
-function generateCopyButtonGenerator(title) {
+function createCopyButtonFactory(title) {
     if (!copyButtonStylePresent) {
         GM_addStyle(`
 .fch-CopyButton {
@@ -145,7 +145,7 @@ function generateCopyButtonGenerator(title) {
     toast.classList.add("fch-CopyButton-Toast");
     toast.style.display = "none";
 
-    return function(text) {
+    return function(text, copyCb) {
         const newButton = button.cloneNode(true);
         const newToast = newButton.querySelector(".fch-CopyButton-Toast");
         newToast.addEventListener("animationend", function(ev) {
@@ -161,6 +161,8 @@ function generateCopyButtonGenerator(title) {
                     console.error("[FCH] Copy to clipboard error", ex);
                     ok = false;
                 }
+                if (typeof copyCb == "function")
+                    copyCb(text);
 
                 if (!newToast) return;
                 newToast.classList.remove("fch-CopyButton-Toast-Done");
@@ -368,17 +370,41 @@ if (document.querySelector(".RepoShortlog")) {
             return result;
         }
 
+        // strange feature per Mainnn's request
+        //let markAsVisitedIframe = undefined;
+        function markAsVisited(url) {
+            /*
+            if (markAsVisitedIframe === undefined) {
+                markAsVisitedIframe = document.body.appendChild(createElement("iframe"));
+                markAsVisitedIframe.name = "fch-markAsVisited";
+                markAsVisitedIframe.src = blankPage;
+                markAsVisitedIframe.style.display = "none";
+                console.log(markAsVisitedIframe);
+            }
+            */
+            const wnd = window; // markAsVisitedIframe.contentWindow;
+            const oldHref = wnd.location.href;
+            wnd.history.replaceState({}, "", url);
+            wnd.history.replaceState({}, "", oldHref);
+        }
+
         const commits = Array.from(document.querySelectorAll(".Site-content > .Container > .CommitLog > .CommitLog-item"));
-        const createCopyButton = generateCopyButtonGenerator("Copy hash");
+        const createCopyButton = createCopyButtonFactory("Copy hash");
         for (const commit of commits) {
             const hashEl = commit.querySelector(".CommitLog-sha1");
             if (!hashEl) continue;
-            const hash = hashEl.href.split("/").reverse()[0];
+            const hash = new URL(hashEl.href).pathname.split("/").reverse()[0];
             if (!(hash.length == 40 && hash.startsWith(hashEl.innerText))) {
                 console.warn("[FCH] Hash extraction failed, sha1 link element:", hashEl);
                 continue;
             }
-            hashEl.parentNode.insertBefore(createCopyButton(hash), hashEl.nextSibling);
+            hashEl.parentNode.insertBefore(createCopyButton(hash, (_) => {
+                try {
+                    markAsVisited(hashEl.href);
+                } catch (ex) {
+                    console.warn("[FCH] markAsVisited failed", ex);
+                }
+            }), hashEl.nextSibling);
         }
 
         const panel = createFloatingPanel();
@@ -586,7 +612,7 @@ Does this seem correct?`)) {
         if (commitRow.querySelector(":scope > .Metadata-title").innerText == "commit") {
             const commitEl = commitRow.querySelector(":scope > td:nth-child(2)");
             const commit = commitEl.innerText;
-            commitEl.appendChild(generateCopyButtonGenerator("Copy hash")(commit));
+            commitEl.appendChild(createCopyButtonFactory("Copy hash")(commit));
             const dLog = commitRow.querySelector(":scope > td:nth-child(3)");
             const headLogUrl = new URL(getPathToRef(getRepoHomePath(location.pathname), "HEAD", "log"), location.origin);
             headLogUrl.searchParams.set("s", commit);
@@ -603,6 +629,7 @@ Does this seem correct?`)) {
         if (committerRow.querySelector(":scope > .Metadata-title").innerText == "committer") {
             const committerEl = committerRow.querySelector(":scope > td:nth-child(2)");
             const committerEmailMatch = committerEl.innerText.match("<([^<>]+?)>$");
+            // TODO: more specific patterns to match expected committers
             if (committerEmailMatch && matchesPatterns(committerEmailMatch[1], AUTHOR_ALLOWLIST))
                 committerEl.style.backgroundColor = "#ffee3366";
             const refTime = new Date(getForCurrentSite("referenceTime"));
