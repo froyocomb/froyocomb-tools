@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Froyocomb Helper
 // @namespace    https://dobby233liu.neocities.org
-// @version      v1.1.10
+// @version      v1.1.11
 // @description  Tool for speeding up the process of finding commits from before a specific date (i.e. included with a specific build). Developed for Froyocomb, the Android pre-release source reconstruction project.
 // @author       Liu Wenyuan
 // @match        https://android.googlesource.com/*
@@ -618,7 +618,14 @@ Does this seem correct?`)) {
     })();
 } else if (document.querySelector(".TreeDetail") || document.querySelector(".Diff")) {
     (function() {
-        const commitRow = document.querySelector(".Metadata > table > tbody > tr:nth-child(1)");
+        const metadata = document.querySelectorAll(".Metadata > table > tbody");
+        const metadata1 = metadata.length >= 1 ? metadata[0] : null;
+        if (!metadata1) return;
+        const metadata2 = metadata.length >= 2 ? metadata[1] : metadata1;
+
+        let commitRow = metadata1.querySelector(":scope > tr:nth-child(1)");
+        if (commitRow.querySelector(":scope > .Metadata-title").innerText != "commit")
+            commitRow = metadata2.querySelector(":scope > tr:nth-child(1)");
         if (commitRow.querySelector(":scope > .Metadata-title").innerText == "commit") {
             const commitEl = commitRow.querySelector(":scope > td:nth-child(2)");
             const commit = commitEl.innerText;
@@ -635,15 +642,16 @@ Does this seem correct?`)) {
             headLogLinkContainer.appendChild(document.createTextNode("]"));
         }
 
-        const committerRow = document.querySelector(".Metadata > table > tbody > tr:nth-child(3)");
-        if (committerRow.querySelector(":scope > .Metadata-title").innerText == "committer") {
-            const committerEl = committerRow.querySelector(":scope > td:nth-child(2)");
+        function highlightCommitterOrTaggerRow(row) {
+            const committerEl = row.querySelector(":scope > td:nth-child(2)");
+
             const committerEmailMatch = committerEl.innerText.match("<([^<>]+?)>$");
             // TODO: more specific patterns to match expected committers
             if (committerEmailMatch && matchesPatterns(committerEmailMatch[1], AUTHOR_ALLOWLIST))
                 committerEl.style.backgroundColor = "#ffee3366";
+
             const refTime = new Date(getForCurrentSite("referenceTime"));
-            const commitTimeEl = committerRow.querySelector(":scope > td:nth-child(3)");
+            const commitTimeEl = row.querySelector(":scope > td:nth-child(3)");
             const commitTime = new Date(commitTimeEl.innerText);
             const commitMsg = document.body.querySelector(".Container > .MetadataMessage")?.innerText;
             const lesser = commitMsg ? matchesPatterns(commitMsg, ALERTABLE_COMMENT_MESSAGE_PATTERNS) : false;
@@ -653,5 +661,15 @@ Does this seem correct?`)) {
                 commitTimeEl.style.backgroundColor = lesser ? "#aadfff77" : "#ffff00";
             }
         }
+
+        let committerRow = metadata1.querySelector(":scope > tr:nth-child(3)");
+        if (committerRow.querySelector(":scope > .Metadata-title").innerText != "committer")
+            committerRow = metadata2.querySelector(":scope > tr:nth-child(3)");
+        if (committerRow.querySelector(":scope > .Metadata-title").innerText == "committer")
+            highlightCommitterOrTaggerRow(committerRow);
+
+        let taggerRow = metadata1.querySelector(":scope > tr:nth-child(2)");
+        if (taggerRow.querySelector(":scope > .Metadata-title").innerText == "tagger")
+            highlightCommitterOrTaggerRow(taggerRow);
     })();
 }
