@@ -11,9 +11,9 @@
 // @grant        GM_setValue
 // @grant        GM_deleteValue
 // @run-at       document-end
-// @downloadURL  https://raw.githubusercontent.com/froyocomb/froyocomb-tools/refs/heads/main/Froyocomb%20Helper.user.js
-// @updateURL    https://raw.githubusercontent.com/froyocomb/froyocomb-tools/refs/heads/main/Froyocomb%20Helper.user.js
-// @supportURL   https://github.com/froyocomb/froyocomb-tools
+// @downloadURL  https://raw.githubusercontent.com/froyocomb/tools/refs/heads/main/Froyocomb%20Helper.user.js
+// @updateURL    https://raw.githubusercontent.com/froyocomb/tools/refs/heads/main/Froyocomb%20Helper.user.js
+// @supportURL   https://github.com/froyocomb/tools
 // ==/UserScript==
 
 "use strict";
