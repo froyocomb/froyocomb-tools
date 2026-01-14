@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         Froyocomb Helper
-// @namespace    https://dobby233liu.neocities.org
-// @version      v1.1.11
+// @namespace    https://github.com/froyocomb
+// @version      v1.1.12
 // @description  Tool for speeding up the process of finding commits from before a specific date (i.e. included with a specific build). Developed for Froyocomb, the Android pre-release source reconstruction project.
-// @author       Liu Wenyuan
+// @author       Liu Wenyuan & Froyocomb Team
 // @match        https://android.googlesource.com/*
 // @match        https://chromium.googlesource.com/*
 // @grant        GM_addStyle
@@ -11,9 +11,9 @@
 // @grant        GM_setValue
 // @grant        GM_deleteValue
 // @run-at       document-end
-// @downloadURL  https://gist.github.com/Dobby233Liu/c55c1e9c816facd153eeb19e386f53fd/raw/Froyocomb Helper.user.js
-// @updateURL    https://gist.github.com/Dobby233Liu/c55c1e9c816facd153eeb19e386f53fd/raw/Froyocomb Helper.user.js
-// @supportURL   https://gist.github.com/Dobby233Liu/c55c1e9c816facd153eeb19e386f53fd#comments
+// @downloadURL  https://raw.githubusercontent.com/froyocomb/froyocomb-tools/refs/heads/main/Froyocomb%20Helper.user.js
+// @updateURL    https://raw.githubusercontent.com/froyocomb/froyocomb-tools/refs/heads/main/Froyocomb%20Helper.user.js
+// @supportURL   https://github.com/froyocomb/froyocomb-tools/tree/main
 // ==/UserScript==
 
 "use strict";
