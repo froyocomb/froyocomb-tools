@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Froyocomb Helper
 // @namespace    https://github.com/froyocomb
-// @version      v1.1.12
+// @version      v1.1.12a
 // @description  Tool for speeding up the process of finding commits from before a specific date (i.e. included with a specific build). Developed for Froyocomb, the Android pre-release source reconstruction project.
 // @author       Liu Wenyuan & Froyocomb Team
 // @match        https://android.googlesource.com/*
@@ -13,7 +13,7 @@
 // @run-at       document-end
 // @downloadURL  https://raw.githubusercontent.com/froyocomb/froyocomb-tools/refs/heads/main/Froyocomb%20Helper.user.js
 // @updateURL    https://raw.githubusercontent.com/froyocomb/froyocomb-tools/refs/heads/main/Froyocomb%20Helper.user.js
-// @supportURL   https://github.com/froyocomb/froyocomb-tools/tree/main
+// @supportURL   https://github.com/froyocomb/froyocomb-tools
 // ==/UserScript==
 
 "use strict";
