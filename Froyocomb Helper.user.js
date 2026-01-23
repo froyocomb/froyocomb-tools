@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Froyocomb Helper
 // @namespace    https://dobby233liu.neocities.org
-// @version      v1.1.12b
+// @version      v1.1.13
 // @description  Tool for speeding up the process of finding commits from before a specific date (i.e. included with a specific build). Developed for Froyocomb, the Android pre-release source reconstruction project.
 // @author       Liu Wenyuan & Froyocomb Team
 // @match        https://android.googlesource.com/*
@@ -13,7 +13,7 @@
 // @run-at       document-end
 // @downloadURL  https://raw.githubusercontent.com/froyocomb/tools/refs/heads/main/Froyocomb%20Helper.user.js
 // @updateURL    https://raw.githubusercontent.com/froyocomb/tools/refs/heads/main/Froyocomb%20Helper.user.js
-// @supportURL   https://github.com/froyocomb/tools
+// @homepage     https://github.com/froyocomb/tools
 // ==/UserScript==
 
 "use strict";
@@ -430,50 +430,53 @@ if (document.querySelector(".RepoShortlog")) {
         const messageContainerEl = lightEmUpEntry.appendChild(createElement("div"));
         messageContainerEl.classList.add("fch-LightEmUp-Message-Container");
 
-        const lightEmUpBtn = messageContainerEl.appendChild(generateButton("Light 'em up!"));
-        lightEmUpBtn.accessKey = "z";
-        lightEmUpBtn.title = "[alt+z]";
+        const commitLogPretty = !!document.querySelector(".CommitLog-item > .Metadata");
+        if (!commitLogPretty) { // FIXME: make lightEmUp work on pretty=fuller pages
+            const lightEmUpBtn = messageContainerEl.appendChild(generateButton("Light 'em up!"));
+            lightEmUpBtn.accessKey = "z";
+            lightEmUpBtn.title = "[alt+z]";
 
-        const messageEl = messageContainerEl.appendChild(createElement("span"));
-        messageEl.classList.add("fch-LightEmUp-Message");
+            const messageEl = messageContainerEl.appendChild(createElement("span"));
+            messageEl.classList.add("fch-LightEmUp-Message");
 
-        const jumpToFirst = messageContainerEl.appendChild(createElement("a"));
-        jumpToFirst.classList.add("fch-lightedUp-JumpToFirst");
-        jumpToFirst.innerText = "(first)";
-        jumpToFirst.href = "#" + firstId;
-        jumpToFirst.style.display = "none";
-        jumpToFirst.accessKey = "v";
-        jumpToFirst.title = "[alt+v]";
+            const jumpToFirst = messageContainerEl.appendChild(createElement("a"));
+            jumpToFirst.classList.add("fch-lightedUp-JumpToFirst");
+            jumpToFirst.innerText = "(first)";
+            jumpToFirst.href = "#" + firstId;
+            jumpToFirst.style.display = "none";
+            jumpToFirst.accessKey = "v";
+            jumpToFirst.title = "[alt+v]";
 
-        lightEmUpBtn.addEventListener("click", function() {
-            const time = new Date(getForCurrentSite("referenceTime"));
-            const filtered = filterCommits(commits, time);
+            lightEmUpBtn.addEventListener("click", function() {
+                const time = new Date(getForCurrentSite("referenceTime"));
+                const filtered = filterCommits(commits, time);
 
-            let firstFound = false;
-            for (const commit of commits) {
-                commit.classList.remove(lightedUpClz);
-                commit.classList.remove(lightedUpExactClz);
-                commit.classList.remove(lightedUpLesserClz);
-                const found = filtered[commit.querySelector(":scope > .CommitLog-sha1").href];
-                if (found === undefined) {
-                    if (commit.id == firstId)
-                        delete commit.id;
-                } else {
-                    commit.classList.add(lightedUpClz + found);
-                    if (!firstFound) {
-                        commit.id = firstId;
-                        firstFound = true;
-                    } else if (commit.id == firstId) {
-                        delete commit.id;
+                let firstFound = false;
+                for (const commit of commits) {
+                    commit.classList.remove(lightedUpClz);
+                    commit.classList.remove(lightedUpExactClz);
+                    commit.classList.remove(lightedUpLesserClz);
+                    const found = filtered[commit.querySelector(":scope > .CommitLog-sha1").href];
+                    if (found === undefined) {
+                        if (commit.id == firstId)
+                            delete commit.id;
+                    } else {
+                        commit.classList.add(lightedUpClz + found);
+                        if (!firstFound) {
+                            commit.id = firstId;
+                            firstFound = true;
+                        } else if (commit.id == firstId) {
+                            delete commit.id;
+                        }
                     }
                 }
-            }
 
-            const filteredCount = Object.keys(filtered).length;
-            messageEl.innerText = `${filteredCount} found`;
-            messageEl.title = `(before ${time.toISOString()})`;
-            jumpToFirst.style.display = filteredCount > 0 ? "" : "none";
-        });
+                const filteredCount = Object.keys(filtered).length;
+                messageEl.innerText = `${filteredCount} found`;
+                messageEl.title = `(before ${time.toISOString()})`;
+                jumpToFirst.style.display = filteredCount > 0 ? "" : "none";
+            });
+        }
 
         const nextButtonOrig = document.querySelector(".LogNav-next");
         const prevButtonOrig = document.querySelector(".LogNav-prev");
@@ -507,8 +510,19 @@ if (document.querySelector(".RepoShortlog")) {
         refTimeSetterEntry.classList.add("fch-LightEmUp-RefTimeSetter-Entry");
         const refTimeSetterContainer = refTimeSetterEntry.appendChild(createElement("span"));
 
-        refTimeSetterContainer.appendChild(document.createTextNode("(Set "));
+        if (commitLogPretty) {
+            const rtsAppliesOnRefresh = refTimeSetterContainer.appendChild(createElement("abbr"));
+            rtsAppliesOnRefresh.innerText = "Applies on refresh";
+            rtsAppliesOnRefresh.title = 'Complain to Dobby if you\'d like "Light \'em up" to work here';
+            refTimeSetterContainer.appendChild(document.createTextNode(" | "));
+        }
 
+        refTimeSetterContainer.appendChild(document.createTextNode("Set"));
+        function rtsInsertSpace() {
+            refTimeSetterContainer.appendChild(document.createTextNode(" "));
+        }
+
+        rtsInsertSpace();
         refTimeSetterContainer.appendChild(generateButton("by datetime", function() {
             const val = prompt("Set reference time by datetime string:", new Date(getForCurrentSite("referenceTime")).toISOString()).trim();
             if (!val || val === "") return;
@@ -521,6 +535,7 @@ if (document.querySelector(".RepoShortlog")) {
             updateRefTimeDisp();
         }));
 
+        rtsInsertSpace();
         refTimeSetterContainer.appendChild(generateButton("by timestamp", function() {
             const val = prompt("Set reference time by timestamp:", getForCurrentSite("referenceTime")).trim();
             if (!val || val === "") return;
@@ -533,12 +548,9 @@ if (document.querySelector(".RepoShortlog")) {
             updateRefTimeDisp();
         }));
 
-        function rtsTerminateQuote() {
-            refTimeSetterContainer.appendChild(document.createTextNode(")"));
-        }
         if (SITE == "android") {
+            rtsInsertSpace();
             const setByCommitBtn = refTimeSetterContainer.appendChild(generateButton("by tag commit"));
-            rtsTerminateQuote();
             const setByCommitWorkingEl = refTimeSetterContainer.appendChild(createElement("span"));
             setByCommitWorkingEl.innerText = " (working...)";
             setByCommitWorkingEl.style.display = "none";
@@ -603,11 +615,10 @@ Does this seem correct?`)) {
                 }
                 setByCommitWorkingEl.style.display = "none";
             });
-        } else {
-            rtsTerminateQuote();
         }
 
         const panelRight = createFloatingPanel("right");
+        // TODO: add options to set "pretty" and "n" here
         panelRight.appendChild(generateButton("Locate", function() {
             const newLoc = new URL(location);
             const start = prompt("Commit to locate in this log:", newLoc.searchParams.get("s") || "").trim();
@@ -616,60 +627,65 @@ Does this seem correct?`)) {
             location.href = newLoc.href;
         }));
     })();
-} else if (document.querySelector(".TreeDetail") || document.querySelector(".Diff")) {
+}
+if (document.querySelector(".Metadata")) {
     (function() {
-        const metadata = document.querySelectorAll(".Metadata > table > tbody");
-        const metadata1 = metadata.length >= 1 ? metadata[0] : null;
-        if (!metadata1) return;
-        const metadata2 = metadata.length >= 2 ? metadata[1] : metadata1;
+        const metadataParents = document.querySelectorAll(".Metadata");
+        for (const metadataParent of metadataParents) {
+            const metadata = metadataParent.querySelectorAll(":scope > table > tbody");
+            const metadata1 = metadata.length >= 1 ? metadata[0] : null;
+            if (!metadata1) continue;
+            const metadata2 = metadata.length >= 2 ? metadata[1] : metadata1;
 
-        let commitRow = metadata1.querySelector(":scope > tr:nth-child(1)");
-        if (commitRow.querySelector(":scope > .Metadata-title").innerText != "commit")
-            commitRow = metadata2.querySelector(":scope > tr:nth-child(1)");
-        if (commitRow.querySelector(":scope > .Metadata-title").innerText == "commit") {
-            const commitEl = commitRow.querySelector(":scope > td:nth-child(2)");
-            const commit = commitEl.innerText;
-            commitEl.appendChild(createCopyButtonFactory("Copy hash")(commit));
-            const dLog = commitRow.querySelector(":scope > td:nth-child(3)");
-            const headLogUrl = new URL(getPathToRef(getRepoHomePath(location.pathname), "HEAD", "log"), location.origin);
-            headLogUrl.searchParams.set("s", commit);
-            dLog.appendChild(document.createTextNode(" "));
-            const headLogLinkContainer = dLog.appendChild(createElement("span"));
-            headLogLinkContainer.appendChild(document.createTextNode("["));
-            const headLogLink = headLogLinkContainer.appendChild(createElement("a"));
-            headLogLink.href = headLogUrl.href;
-            headLogLink.innerText = "log@HEAD";
-            headLogLinkContainer.appendChild(document.createTextNode("]"));
-        }
-
-        function highlightCommitterOrTaggerRow(row) {
-            const committerEl = row.querySelector(":scope > td:nth-child(2)");
-
-            const committerEmailMatch = committerEl.innerText.match("<([^<>]+?)>$");
-            // TODO: more specific patterns to match expected committers
-            if (committerEmailMatch && matchesPatterns(committerEmailMatch[1], AUTHOR_ALLOWLIST))
-                committerEl.style.backgroundColor = "#ffee3366";
-
-            const refTime = new Date(getForCurrentSite("referenceTime"));
-            const commitTimeEl = row.querySelector(":scope > td:nth-child(3)");
-            const commitTime = new Date(commitTimeEl.innerText);
-            const commitMsg = document.body.querySelector(".Container > .MetadataMessage")?.innerText;
-            const lesser = commitMsg ? matchesPatterns(commitMsg, ALERTABLE_COMMENT_MESSAGE_PATTERNS) : false;
-            if (!isNaN(+commitTime) && commitTime <= refTime) {
-                // <arbitary color> or .CommitLog-item--fch-lightedUp
-                // TODO: do I use CSS for this?
-                commitTimeEl.style.backgroundColor = lesser ? "#aadfff77" : "#ffff00";
+            let commitRow = metadata1.querySelector(":scope > tr:nth-child(1)");
+            if (commitRow.querySelector(":scope > .Metadata-title").innerText != "commit")
+                commitRow = metadata2.querySelector(":scope > tr:nth-child(1)");
+            if (commitRow.querySelector(":scope > .Metadata-title").innerText == "commit") {
+                const commitEl = commitRow.querySelector(":scope > td:nth-child(2)");
+                const commit = commitEl.innerText;
+                commitEl.appendChild(createCopyButtonFactory("Copy hash")(commit));
+                const dLog = commitRow.querySelector(":scope > td:nth-child(3)");
+                const headLogUrl = new URL(getPathToRef(getRepoHomePath(location.pathname), "HEAD", "log"), location.origin);
+                headLogUrl.searchParams.set("s", commit);
+                dLog.appendChild(document.createTextNode(" "));
+                const headLogLinkContainer = dLog.appendChild(createElement("span"));
+                headLogLinkContainer.appendChild(document.createTextNode("["));
+                const headLogLink = headLogLinkContainer.appendChild(createElement("a"));
+                headLogLink.href = headLogUrl.href;
+                headLogLink.innerText = "log@HEAD";
+                headLogLinkContainer.appendChild(document.createTextNode("]"));
             }
+
+            const metadataMessage = metadataParent.nextElementSibling.matches(".MetadataMessage") ? metadataParent.nextElementSibling : null;
+            function highlightCommitterOrTaggerRow(row) {
+                const committerEl = row.querySelector(":scope > td:nth-child(2)");
+
+                const committerEmailMatch = committerEl.innerText.match("<([^<>]+?)>$");
+                // TODO: more specific patterns to match expected committers
+                if (committerEmailMatch && matchesPatterns(committerEmailMatch[1], AUTHOR_ALLOWLIST))
+                    committerEl.style.backgroundColor = "#ffee3366";
+
+                const refTime = new Date(getForCurrentSite("referenceTime"));
+                const commitTimeEl = row.querySelector(":scope > td:nth-child(3)");
+                const commitTime = new Date(commitTimeEl.innerText);
+                const commitMsg = metadataMessage?.innerText;
+                const lesser = commitMsg ? matchesPatterns(commitMsg, ALERTABLE_COMMENT_MESSAGE_PATTERNS) : false;
+                if (!isNaN(+commitTime) && commitTime <= refTime) {
+                    // <arbitary color> or .CommitLog-item--fch-lightedUp
+                    // TODO: do I use CSS for this?
+                    commitTimeEl.style.backgroundColor = lesser ? "#aadfff77" : "#ffff00";
+                }
+            }
+
+            let committerRow = metadata1.querySelector(":scope > tr:nth-child(3)");
+            if (committerRow.querySelector(":scope > .Metadata-title").innerText != "committer")
+                committerRow = metadata2.querySelector(":scope > tr:nth-child(3)");
+            if (committerRow.querySelector(":scope > .Metadata-title").innerText == "committer")
+                highlightCommitterOrTaggerRow(committerRow);
+
+            let taggerRow = metadata1.querySelector(":scope > tr:nth-child(2)");
+            if (taggerRow.querySelector(":scope > .Metadata-title").innerText == "tagger")
+                highlightCommitterOrTaggerRow(taggerRow);
         }
-
-        let committerRow = metadata1.querySelector(":scope > tr:nth-child(3)");
-        if (committerRow.querySelector(":scope > .Metadata-title").innerText != "committer")
-            committerRow = metadata2.querySelector(":scope > tr:nth-child(3)");
-        if (committerRow.querySelector(":scope > .Metadata-title").innerText == "committer")
-            highlightCommitterOrTaggerRow(committerRow);
-
-        let taggerRow = metadata1.querySelector(":scope > tr:nth-child(2)");
-        if (taggerRow.querySelector(":scope > .Metadata-title").innerText == "tagger")
-            highlightCommitterOrTaggerRow(taggerRow);
     })();
 }
