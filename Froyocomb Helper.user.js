@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Froyocomb Helper
 // @namespace    https://dobby233liu.neocities.org
-// @version      v1.1.13
+// @version      v1.1.13a
 // @description  Tool for speeding up the process of finding commits from before a specific date (i.e. included with a specific build). Developed for Froyocomb, the Android pre-release source reconstruction project.
 // @author       Liu Wenyuan & Froyocomb Team
 // @match        https://android.googlesource.com/*
@@ -556,7 +556,8 @@ if (document.querySelector(".RepoShortlog")) {
             setByCommitWorkingEl.style.display = "none";
 
             async function setByCommitBtnOnClickReal() {
-                const hash = prompt("Please input the full hash of the commit modifying build/(make/)core/build_id.mk that you have in mind").trim();
+                const hash = prompt("Please input the full hash of the commit modifying build/(make/)core/build_id.mk that you have in mind")?.trim();
+                if (!hash || hash == "") return;
                 if (hash.search(/^[0-9a-f]{40}$/) == -1) { // technically an arbitary limitation but idk
                     alert("Invalid hash");
                     return;
