@@ -19,6 +19,5 @@
 
 <resources>
     <string name="app_name">Fake Market</string>
-    <string name="main_text">This is an app that spoofs the Market icon seen in Ice Cream Sandwich. The application acts as a Market in order to trick the operating system into thinking Google Applications are installed. It does not serve any other purpose. By Froyocomb/Dobby233Liu @ 2026</string>
+    <string name="main_text">This is an app that spoofs the Market icon seen in the top right corner of the Launcher found in Android Ice Cream Sandwich. The application acts as a Market in order to trick the operating system into thinking Google applications are installed. It does not serve any other purpose. By Froyocomb/Dobby233Liu @ 2026</string>
 </resources>
-

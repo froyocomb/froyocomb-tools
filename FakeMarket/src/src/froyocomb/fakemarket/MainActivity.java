@@ -19,6 +19,7 @@ package froyocomb.fakemarket;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.view.View;
 
 public class MainActivity extends Activity {
     /** Called with the activity is first created. */
@@ -28,5 +29,16 @@ public class MainActivity extends Activity {
 
         // Inflate our UI from its XML layout description.
         setContentView(R.layout.main_activity);
+        
+        // Make the Shop button responsive
+        View shopButton = findViewById(R.id.text);
+        if (shopButton != null) {
+            shopButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    // Keep the app in foreground when Shop button is pressed
+                }
+            });
+        }
     }
 }
